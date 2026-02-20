@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class tr_ca_transaction extends Model
+{
+    use HasFactory;
+
+    // protected $guarded = [];
+    protected $table = 'tr_ca_transaction';
+
+    protected $fillable = [
+        'tr_ca_id',
+        'tanggal',
+        'jenis',
+        'deskripsi',
+        'jumlah',
+        'saldo_setelah',
+    ];
+
+    public function trCA()
+    {
+        return $this->belongsTo(tr_ca::class);
+    }
+}
