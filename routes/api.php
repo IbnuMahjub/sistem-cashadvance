@@ -20,4 +20,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 
-Route::get('/all_data', [CashAdvanceController::class, 'index']);
+Route::get('/ca', [CashAdvanceController::class, 'index']);
+Route::get('/ca/{kode_ca}', [CashAdvanceController::class, 'showByKode']);
+Route::post('/post_ca', [CashAdvanceController::class, 'post_ca']);
