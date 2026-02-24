@@ -9,17 +9,17 @@ class tr_ca_transaction extends Model
 {
     use HasFactory;
 
-    // protected $guarded = [];
+    protected $guarded = [];
     protected $table = 'tr_ca_transaction';
 
-    protected $fillable = [
-        'tr_ca_id',
-        'tanggal',
-        'jenis',
-        'deskripsi',
-        'jumlah',
-        'saldo_setelah',
-    ];
+    // protected $fillable = [
+    //     'tr_ca_id',
+    //     'tanggal',
+    //     'jenis',
+    //     'deskripsi',
+    //     'jumlah',
+    //     'saldo_setelah',
+    // ];
 
     public function trCA()
     {

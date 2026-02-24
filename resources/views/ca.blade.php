@@ -14,6 +14,12 @@
 <div class="container mt-5">
     <h3 class="mb-4">Data Cash Advance</h3>
 
+    <div class="d-flex justify-content-between mb-3">
+        <h3>Data Cash Advance</h3>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+            + Tambah CA
+        </button>
+    </div>
     <table id="caTable" class="table table-bordered table-striped">
         <thead class="table-dark">
             <tr>
@@ -111,6 +117,47 @@
     </div>
 </div>
 
+<!-- ================= MODAL ADD ================= -->
+<div class="modal fade" id="addModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5>Tambah Cash Advance</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addForm">
+
+                    <div class="mb-3">
+                        <label>Judul</label>
+                        <input type="text" id="add_judul" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Tahun Anggaran</label>
+                        <input type="number" id="add_tahun" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Tanggal Mulai</label>
+                        <input type="date" id="add_mulai" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Tanggal Selesai</label>
+                        <input type="date" id="add_selesai" class="form-control" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        Simpan
+                    </button>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- JQuery -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
@@ -155,6 +202,36 @@ $(document).ready(function () {
                 }
             }
         ]
+    });
+
+    // ================= ADD =================
+    $('#addForm').submit(function(e){
+        e.preventDefault();
+
+        $.ajax({
+            url: '/api/post_ca',
+            type: 'POST',
+            data: {
+                judul_kegiatan: $('#add_judul').val(),
+                tahun_anggaran: $('#add_tahun').val(),
+                tanggal_mulai: $('#add_mulai').val(),
+                tanggal_selesai: $('#add_selesai').val()
+            },
+            success: function(res){
+                Swal.fire('Success','Data berhasil ditambahkan','success');
+                $('#addModal').modal('hide');
+                $('#addForm')[0].reset();
+                table.ajax.reload();
+            },
+            error: function(xhr){
+                let errors = xhr.responseJSON.errors;
+                let pesan = '';
+                for (let field in errors) {
+                    pesan += errors[field][0] + '<br>';
+                }
+                Swal.fire('Error', pesan, 'error');
+            }
+        });
     });
 
     // ================= DETAIL =================
