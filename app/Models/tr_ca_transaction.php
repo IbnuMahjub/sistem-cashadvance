@@ -12,14 +12,14 @@ class tr_ca_transaction extends Model
     protected $guarded = [];
     protected $table = 'tr_ca_transaction';
 
-    // protected $fillable = [
-    //     'tr_ca_id',
-    //     'tanggal',
-    //     'jenis',
-    //     'deskripsi',
-    //     'jumlah',
-    //     'saldo_setelah',
-    // ];
+    protected $fillable = [
+        'tr_ca_id',
+        'tanggal',
+        'jenis',
+        'deskripsi',
+        'jumlah',
+        'saldo_setelah',
+    ];
 
     public function trCA()
     {

@@ -21,3 +21,6 @@ Route::get('/', function () {
 Route::get('/ca', function () {
     return view('ca');
 });
+Route::get('/ca-pl', function () {
+    return view('capl');
+});

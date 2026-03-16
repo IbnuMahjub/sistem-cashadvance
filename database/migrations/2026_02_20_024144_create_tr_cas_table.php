@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('tr_ca', function (Blueprint $table) {
             $table->id();
             $table->string('kode_ca')->unique();
+            $table->string('user_id');
+            $table->string('username');
             $table->string('judul_kegiatan');
             $table->year('tahun_anggaran');
             $table->date('tanggal_mulai')->nullable();

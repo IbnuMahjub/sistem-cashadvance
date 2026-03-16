@@ -12,7 +12,7 @@ class tr_ca extends Model
 
     protected $table = 'tr_ca';
     protected $guarded = [];
-    // protected $fillable = ['kode_ca', 'judul_kegiatan', 'tahun_anggaran', 'tanggal_mulai', 'tanggal_selesai', 'total_penerimaan', 'total_pengeluaran', 'saldo_akhir', 'status', 'created_by'];
+    protected $fillable = ['kode_ca', 'judul_kegiatan', 'tahun_anggaran', 'tanggal_mulai', 'tanggal_selesai', 'total_penerimaan', 'total_pengeluaran', 'saldo_akhir', 'status', 'created_by'];
 
     public function trCA()
     {

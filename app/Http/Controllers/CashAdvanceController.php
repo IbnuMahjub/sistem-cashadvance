@@ -81,7 +81,7 @@ class CashAdvanceController extends Controller
         $validated = $request->validate([
             'tanggal' => 'required|date',
             'jenis' => 'required|in:penerimaan,pengeluaran',
-            'deskripsi' => 'nullable',
+            'deskripsi' => 'required',
             'jumlah' => 'required|numeric|min:1',
         ]);
 
@@ -128,6 +128,28 @@ class CashAdvanceController extends Controller
     public function delete_ca($kode)
     {
         $data = tr_ca::where('kode_ca', $kode)->delete();
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
+
+
+    public function caPL(Request $request)
+    {
+        $userId = $request->header('x-api-key');
+
+        if (!$userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'x-api-key header tidak ditemukan'
+            ], 401);
+        }
+
+        $data = tr_ca::with('trCA')
+            ->where('user_id', $userId)
+            ->get();
+
         return response()->json([
             'success' => true,
             'data' => $data

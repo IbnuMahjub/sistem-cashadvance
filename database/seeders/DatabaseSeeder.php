@@ -24,6 +24,8 @@ class DatabaseSeeder extends Seeder
 
         $ca = tr_ca::create([
             'kode_ca' => 'CA-2025-001',
+            'user_id' => 1,
+            'username' => 'birly',
             'judul_kegiatan' => 'Pengadaan Intelijen IMSI Catcher',
             'tahun_anggaran' => 2025,
             'tanggal_mulai' => '2025-10-29',

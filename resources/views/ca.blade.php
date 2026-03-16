@@ -12,7 +12,7 @@
 <body>
 
 <div class="container mt-5">
-    <h3 class="mb-4">Data Cash Advance</h3>
+    {{-- <h3 class="mb-4">Data Cash Advance</h3> --}}
 
     <div class="d-flex justify-content-between mb-3">
         <h3>Data Cash Advance</h3>

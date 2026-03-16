@@ -25,3 +25,5 @@ Route::get('/ca/{kode_ca}', [CashAdvanceController::class, 'showByKode']);
 Route::post('/post_ca', [CashAdvanceController::class, 'post_ca']);
 Route::post('/ca/{kode}/transaksi', [CashAdvanceController::class, 'postTransaksi']);
 Route::delete('/ca/{kode_ca}', [CashAdvanceController::class, 'delete_ca']);
+
+Route::get('/ca-pl', [CashAdvanceController::class, 'caPL']);
