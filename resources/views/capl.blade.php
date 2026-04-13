@@ -161,6 +161,9 @@ Simpan
 
 
 <script>
+    const BASE_URL = "{{ env('API_URL') }}";
+</script>
+<script>
 
 let kodeCA = null;
 
@@ -178,7 +181,8 @@ function rupiah(angka){
 function loadData(){
 
     $.ajax({
-        url:"http://127.0.0.1:8000/api/ca-pl",
+        // url:"http://127.0.0.1:8000/api/ca-pl",
+        url: BASE_URL + "/ca-pl",
         method:"GET",
         headers:{
             "x-api-key":1
@@ -256,7 +260,8 @@ $(document).ready(function(){
 
         $.ajax({
 
-            url:`http://127.0.0.1:8081/api/ca/${kodeCA}/transaksi`,
+            // url:`http://127.0.0.1:8081/api/ca/${kodeCA}/transaksi`,
+            url: BASE_URL + `/ca/${kodeCA}/transaksi`,
             method:"POST",
 
             headers:{
