@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\tr_ca;
+use App\Models\tr_ca_transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -41,6 +42,8 @@ class CashAdvanceController extends Controller
     {
         $validated = $request->validate([
             // 'kode_ca' => 'required|unique:tr_ca,kode_ca',
+            'user_id' => 'required',
+            'user_name' => 'required',
             'judul_kegiatan' => 'required',
             'tahun_anggaran' => 'required',
             'tanggal_mulai' => 'required',
@@ -153,6 +156,126 @@ class CashAdvanceController extends Controller
         return response()->json([
             'success' => true,
             'data' => $data
+        ]);
+    }
+
+    public function postTransaksiCaPl(Request $request, $kode_ca)
+    {
+        $userId = $request->header('x-api-key');
+
+        if (!$userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'x-api-key header tidak ditemukan'
+            ], 401);
+        }
+
+        // Validasi
+        $request->validate([
+            'tanggal'   => 'required|date',
+            'jenis'     => 'required|in:penerimaan,pengeluaran',
+            'deskripsi' => 'nullable|string',
+            'jumlah'    => 'required|numeric|min:0'
+        ]);
+
+        // Ambil CA
+        $ca = tr_ca::where('kode_ca', $kode_ca)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$ca) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data CA tidak ditemukan'
+            ], 404);
+        }
+
+        // Hitung saldo baru
+        $saldoSebelum = $ca->saldo_akhir;
+        $jumlah = $request->jumlah;
+
+        if ($request->jenis == 'penerimaan') {
+            $saldoSetelah = $saldoSebelum + $jumlah;
+            $ca->total_penerimaan += $jumlah;
+        } else {
+            $saldoSetelah = $saldoSebelum - $jumlah;
+            $ca->total_pengeluaran += $jumlah;
+        }
+
+        // Simpan transaksi
+        $transaksi = tr_ca_transaction::create([
+            'tr_ca_id'       => $ca->id,
+            'tanggal'        => $request->tanggal,
+            'jenis'          => $request->jenis,
+            'deskripsi'      => $request->deskripsi,
+            'jumlah'         => $jumlah,
+            'saldo_setelah'  => $saldoSetelah,
+        ]);
+
+        // Update saldo di CA
+        $ca->saldo_akhir = $saldoSetelah;
+        $ca->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaksi berhasil ditambahkan',
+            'data' => $transaksi
+        ]);
+    }
+
+    public function deleteTransaksiCaPl(Request $request, $id)
+    {
+        $userId = $request->header('x-api-key');
+
+        if (!$userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'x-api-key header tidak ditemukan'
+            ], 401);
+        }
+
+        // Ambil transaksi
+        $transaksi = tr_ca_transaction::find($id);
+
+        if (!$transaksi) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaksi tidak ditemukan'
+            ], 404);
+        }
+
+        // Ambil CA
+        $ca = tr_ca::where('id', $transaksi->tr_ca_id)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$ca) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data CA tidak ditemukan'
+            ], 404);
+        }
+
+        $jumlah = $transaksi->jumlah;
+
+        // 🔥 Rollback saldo
+        if ($transaksi->jenis == 'penerimaan') {
+            $ca->total_penerimaan -= $jumlah;
+            $ca->saldo_akhir -= $jumlah;
+        } else {
+            $ca->total_pengeluaran -= $jumlah;
+            $ca->saldo_akhir += $jumlah;
+        }
+
+        // Hapus transaksi
+        $transaksi->delete();
+
+        // Save CA
+        $ca->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaksi berhasil dihapus'
         ]);
     }
 }

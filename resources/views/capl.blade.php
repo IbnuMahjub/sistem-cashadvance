@@ -178,7 +178,7 @@ function rupiah(angka){
 function loadData(){
 
     $.ajax({
-        url:"http://127.0.0.1:8081/api/ca-pl",
+        url:"http://127.0.0.1:8000/api/ca-pl",
         method:"GET",
         headers:{
             "x-api-key":1
