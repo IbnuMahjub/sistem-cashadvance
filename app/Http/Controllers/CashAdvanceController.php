@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\CashAdvanceResource;
 use App\Models\tr_ca;
 use App\Models\tr_ca_transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Log;
 
 class CashAdvanceController extends Controller
 {
@@ -140,23 +142,40 @@ class CashAdvanceController extends Controller
 
     public function caPL(Request $request)
     {
-        $userId = $request->header('x-api-key');
+        $userId = $request->user_id;
 
-        if (!$userId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'x-api-key header tidak ditemukan'
-            ], 401);
-        }
+        Log::info($userId);
+        // if (empty($userId)) {
+        //     return sendResponse(
+        //         'error',
+        //         [],
+        //         null,
+        //         'Cek kembali request user_id'
+        //     );
+        // }
 
         $data = tr_ca::with('trCA')
             ->where('user_id', $userId)
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $data
-        ]);
+        if ($data->isEmpty()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Silahkan cek kembali data nya',
+                // 'data' => [],
+                // 'meta' => null
+            ], 404);
+        }
+
+        return sendResponse(
+            'success',
+            // $data,
+            CashAdvanceResource::collection($data),
+            null,
+            'Data berhasil diambil'
+        );
+
+
     }
 
     public function postTransaksiCaPl(Request $request, $kode_ca)
@@ -172,11 +191,16 @@ class CashAdvanceController extends Controller
 
         // Validasi
         $request->validate([
-            'tanggal'   => 'required|date',
-            'jenis'     => 'required|in:penerimaan,pengeluaran',
+            'tanggal' => 'required|date',
+            'jenis' => 'required|in:penerimaan,pengeluaran',
+            'bukti' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'deskripsi' => 'nullable|string',
-            'jumlah'    => 'required|numeric|min:0'
+            'jumlah' => 'required|numeric|min:0'
         ]);
+
+        if ($request->file('bukti')) {
+            $bukti = $request->file('bukti')->store('bukti-transaksi', 'public');
+        }
 
         // Ambil CA
         $ca = tr_ca::where('kode_ca', $kode_ca)
@@ -204,12 +228,13 @@ class CashAdvanceController extends Controller
 
         // Simpan transaksi
         $transaksi = tr_ca_transaction::create([
-            'tr_ca_id'       => $ca->id,
-            'tanggal'        => $request->tanggal,
-            'jenis'          => $request->jenis,
-            'deskripsi'      => $request->deskripsi,
-            'jumlah'         => $jumlah,
-            'saldo_setelah'  => $saldoSetelah,
+            'tr_ca_id' => $ca->id,
+            'tanggal' => $request->tanggal,
+            'jenis' => $request->jenis,
+            'deskripsi' => $request->deskripsi,
+            'jumlah' => $jumlah,
+            'bukti' => $bukti,
+            'saldo_setelah' => $saldoSetelah,
         ]);
 
         // Update saldo di CA

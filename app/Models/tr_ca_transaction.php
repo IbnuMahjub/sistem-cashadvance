@@ -17,6 +17,7 @@ class tr_ca_transaction extends Model
         'tanggal',
         'jenis',
         'deskripsi',
+        'bukti',
         'jumlah',
         'saldo_setelah',
     ];

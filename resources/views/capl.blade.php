@@ -136,6 +136,33 @@ body{
 <input type="number" name="jumlah" class="form-control" required>
 </div>
 
+<div class="mb-3">
+<label>Upload Struk</label>
+
+<input 
+    type="file" 
+    name="bukti" 
+    id="bukti"
+    class="form-control"
+    accept="image/*"
+>
+</div>
+
+<div class="d-grid mb-3">
+<button type="button" class="btn btn-warning" id="btnOCR">
+Scan OCR Struk
+</button>
+</div>
+
+<!-- PREVIEW -->
+<div class="text-center mb-3">
+<img 
+    id="previewStruk" 
+    src="" 
+    style="max-width:100%; display:none; border-radius:10px;"
+>
+</div>
+
 <button class="btn btn-success w-100">
 Simpan
 </button>
@@ -292,6 +319,107 @@ $(document).ready(function(){
                     icon:"error",
                     title:"Gagal",
                     text:"Gagal menyimpan transaksi"
+                });
+
+            }
+
+        });
+
+    });
+
+
+    /* PREVIEW IMAGE */
+    $("#bukti").change(function(e){
+
+        let file = e.target.files[0];
+
+        if(file){
+
+            let reader = new FileReader();
+
+            reader.onload = function(ev){
+
+                $("#previewStruk")
+                    .attr("src", ev.target.result)
+                    .show();
+
+            }
+
+            reader.readAsDataURL(file);
+
+        }
+
+    });
+
+    /* OCR SCAN */
+    $("#btnOCR").click(function(){
+
+        let file = $("#bukti")[0].files[0];
+
+        if(!file){
+
+            Swal.fire({
+                icon:"warning",
+                title:"Oops",
+                text:"Upload struk dulu"
+            });
+
+            return;
+        }
+
+        let formData = new FormData();
+
+        formData.append("bukti", file);
+
+        Swal.fire({
+            title:'Scanning OCR...',
+            allowOutsideClick:false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+
+            url: BASE_URL + "/ocr/scan-struk",
+            method:"POST",
+
+            headers:{
+                "x-api-key":1
+            },
+
+            data:formData,
+
+            processData:false,
+            contentType:false,
+
+            success:function(res){
+
+                Swal.close();
+
+                console.log(res);
+
+                // AUTO ISI FORM
+                $("input[name='tanggal']").val(res.tanggal);
+                $("input[name='deskripsi']").val(res.deskripsi);
+                $("input[name='jumlah']").val(res.jumlah);
+
+                if(res.jenis){
+                    $("select[name='jenis']").val(res.jenis);
+                }
+
+                Swal.fire({
+                    icon:"success",
+                    title:"OCR Berhasil"
+                });
+
+            },
+
+            error:function(){
+
+                Swal.fire({
+                    icon:"error",
+                    title:"OCR gagal"
                 });
 
             }

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->date('tanggal');
             $table->enum('jenis', ['penerimaan', 'pengeluaran']);
             $table->text('deskripsi')->nullable();
+            $table->string('bukti')->nullable();
             $table->decimal('jumlah', 15, 2);
             $table->decimal('saldo_setelah', 15, 2)->default(0);
             $table->timestamps();

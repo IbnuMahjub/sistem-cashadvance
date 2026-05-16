@@ -3,6 +3,7 @@
 use App\Http\Controllers\CashAdvanceController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\OCRController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,3 +30,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::get('/ca-pl', [CashAdvanceController::class, 'caPL']);
 Route::post('/ca/{kode_ca}/transaksi', [CashAdvanceController::class, 'postTransaksiCaPl']);
 Route::delete('/ca/transaksi/{id}', [CashAdvanceController::class, 'deleteTransaksiCaPl']);
+Route::post('/ocr/scan-struk', [OCRController::class, 'scan']);
+
+Route::get('/wallet-pl', [CashAdvanceController::class, 'walletPL']);

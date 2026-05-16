@@ -18,4 +18,9 @@ class tr_ca extends Model
     {
         return $this->hasMany(tr_ca_transaction::class);
     }
+
+    public function tm_category_ca()
+    {
+        return $this->belongsTo(tm_category_ca::class, 'id_ca_category');
+    }
 }
