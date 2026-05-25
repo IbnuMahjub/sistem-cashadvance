@@ -45,7 +45,21 @@ class DatabaseSeeder extends Seeder
             'total_penerimaan' => 2000000,
             'total_pengeluaran' => 2380830,
             'saldo_akhir' => -380830,
-            'status' => 'draft'
+            'status' => 'approved'
+        ]);
+        $ca = tr_ca::create([
+            'id_ca_category' => 1,
+            'kode_ca' => 'CAPL-2024-001',
+            'user_id' => 1,
+            'username' => 'birly',
+            'judul_kegiatan' => 'Pengadaan Intelijen IMSI Catcher 2024',
+            'tahun_anggaran' => 2024,
+            'tanggal_mulai' => '2024-10-29',
+            'tanggal_selesai' => '2024-11-21',
+            'total_penerimaan' => 2000000,
+            'total_pengeluaran' => 2380830,
+            'saldo_akhir' => -380830,
+            'status' => 'approved'
         ]);
 
         // // Saldo awal

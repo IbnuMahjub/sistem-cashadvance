@@ -11,10 +11,24 @@ use Log;
 
 class CashAdvanceController extends Controller
 {
-    public function index()
+    // public function index()
+    // {
+    //     // return response()->json(['data' => 'hello']);
+    //     $data = tr_ca::with('trCA')->get();
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => $data
+    //     ]);
+    // }
+
+    public function index(Request $request)
     {
-        // return response()->json(['data' => 'hello']);
-        $data = tr_ca::with('trCA')->get();
+        $user_id = $request->user_id;
+
+        $data = tr_ca::with('trCA')
+            ->where('user_id', $user_id)
+            ->get();
 
         return response()->json([
             'success' => true,
@@ -45,11 +59,26 @@ class CashAdvanceController extends Controller
         $validated = $request->validate([
             // 'kode_ca' => 'required|unique:tr_ca,kode_ca',
             'user_id' => 'required',
-            'user_name' => 'required',
+            'username' => 'required',
             'judul_kegiatan' => 'required',
             'tahun_anggaran' => 'required',
             'tanggal_mulai' => 'required',
             'tanggal_selesai' => 'required',
+            'total_penerimaan' => 'required',
+            'total_pengeluaran' => 'required',
+            // 'id_ca_category' => 'required',
+            'id_ca_category' => 'required|in:1,2',
+        ], [
+            'user_id.required' => 'User ID harus diisi',
+            'username.required' => 'Username harus diisi',
+            'judul_kegiatan.required' => 'Judul Kegiatan harus diisi',
+            'tahun_anggaran.required' => 'Tahun Anggaran harus diisi',
+            'tanggal_mulai.required' => 'Tanggal Mulai harus diisi',
+            'tanggal_selesai.required' => 'Tanggal Selesai harus diisi',
+            'total_penerimaan.required' => 'Total Penerimaan harus diisi',
+            'total_pengeluaran.required' => 'Total Pengeluaran harus diisi',
+            'id_ca_category.required' => 'Kategori CA harus diisi',
+            'id_ca_category.in' => 'Kategori CA hanya boleh 1 (Dompet PL) atau 2 (Dompet Kegiatan)',
         ]);
 
         $tahun = $validated['tahun_anggaran'];
@@ -75,6 +104,15 @@ class CashAdvanceController extends Controller
 
         $data = tr_ca::create($validated);
 
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
+
+    public function delete_ca($kode)
+    {
+        $data = tr_ca::where('kode_ca', $kode)->delete();
         return response()->json([
             'success' => true,
             'data' => $data
@@ -130,52 +168,57 @@ class CashAdvanceController extends Controller
     }
 
 
-    public function delete_ca($kode)
-    {
-        $data = tr_ca::where('kode_ca', $kode)->delete();
-        return response()->json([
-            'success' => true,
-            'data' => $data
-        ]);
-    }
+    // public function delete_ca($kode)
+    // {
+    //     $data = tr_ca::where('kode_ca', $kode)->delete();
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => $data
+    //     ]);
+    // }
 
 
     public function caPL(Request $request)
     {
         $userId = $request->user_id;
+        $dataCategoryId = $request->data_category_id;
+        $tahunAnggaran = $request->tahun_anggaran;
 
-        Log::info($userId);
-        // if (empty($userId)) {
-        //     return sendResponse(
-        //         'error',
-        //         [],
-        //         null,
-        //         'Cek kembali request user_id'
-        //     );
-        // }
 
-        $data = tr_ca::with('trCA')
-            ->where('user_id', $userId)
-            ->get();
+        $query = tr_ca::with([
+            'trCA',
+            'tm_category_ca'
+        ])
+            ->where('user_id', $userId);
+
+        // filter category id
+        if (!empty($dataCategoryId)) {
+            $query->where('id_ca_category', $dataCategoryId);
+        }
+        if (!empty($tahunAnggaran)) {
+            $query->where('tahun_anggaran', $tahunAnggaran);
+        }
+
+        $data = $query->get();
 
         if ($data->isEmpty()) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Silahkan cek kembali data nya',
-                // 'data' => [],
-                // 'meta' => null
             ], 404);
         }
 
         return sendResponse(
             'success',
-            // $data,
             CashAdvanceResource::collection($data),
             null,
             'Data berhasil diambil'
         );
 
-
+        // return response()->json([
+        //     'success' => true,
+        //     'data' => $data
+        // ]);
     }
 
     public function postTransaksiCaPl(Request $request, $kode_ca)

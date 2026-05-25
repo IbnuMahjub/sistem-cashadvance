@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CAviewController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,6 +22,8 @@ Route::get('/', function () {
 Route::get('/ca', function () {
     return view('ca');
 });
-Route::get('/ca-pl', function () {
-    return view('capl');
-});
+// Route::get('/ca-pl', function () {
+//     return view('capl');
+// });
+
+Route::get('/wallet', [CAviewController::class, 'index']);

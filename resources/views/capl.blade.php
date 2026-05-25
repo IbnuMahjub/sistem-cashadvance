@@ -1,436 +1,348 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-<title>Cash Advance</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CA Project Leader</title>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-<style>
+    <!-- Bootstrap Icon -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-body{
-    background:#f4f6f9;
-}
+    <style>
+        body {
+            background: #f4f7fb;
+        }
 
-.card{
-    border-radius:12px;
-    box-shadow:0 4px 10px rgba(0,0,0,0.08);
-}
+        .wallet-card {
+            border: none;
+            border-radius: 20px;
+            overflow: hidden;
+            transition: .3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, .05);
+        }
 
-.jumlah-plus{
-    color:#198754;
-    font-weight:bold;
-}
+        .wallet-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .08);
+        }
 
-.jumlah-minus{
-    color:#dc3545;
-    font-weight:bold;
-}
+        .wallet-header {
+            background: linear-gradient(135deg, #0d6efd, #3b82f6);
+            color: white;
+            padding: 20px;
+        }
 
-</style>
+        .wallet-balance {
+            font-size: 32px;
+            font-weight: bold;
+        }
 
+        .wallet-category {
+            background: rgba(255, 255, 255, .2);
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 13px;
+        }
+
+        .wallet-body {
+            padding: 20px;
+        }
+
+        .info-label {
+            font-size: 13px;
+            color: #6c757d;
+        }
+
+        .info-value {
+            font-weight: 600;
+        }
+
+        .status-badge {
+            border-radius: 50px;
+            padding: 8px 14px;
+            font-size: 12px;
+        }
+
+        .topbar {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, .05);
+        }
+    </style>
 </head>
+
 <body>
 
-<div class="container mt-5">
+    <div class="container py-4">
+
+        <!-- Header -->
+        <div class="topbar mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h3 class="fw-bold mb-1">
+                    <i class="bi bi-wallet2 text-primary"></i>
+                    Cash Advance Project Leader
+                </h3>
+                <small class="text-muted">
+                    List Dompet Cash Advance
+                </small>
+            </div>
+
+            <button class="btn btn-primary rounded-pill px-4">
+                <i class="bi bi-plus-circle"></i>
+                Tambah Dompet
+            </button>
+        </div>
+
+        <!-- Main Wallet -->
+        <div class="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden">
 
-<div class="card p-4 mb-4">
+            <div class="row g-0">
 
-<h4 id="judul"></h4>
+                <!-- Left -->
+                <div class="col-lg-8">
 
-<div class="row mt-3">
+                    <div class="p-4 bg-primary text-white h-100">
 
-<div class="col-md-3">
-<strong>Kode CA</strong>
-<div id="kode"></div>
-</div>
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
 
-<div class="col-md-3">
-<strong>User</strong>
-<div id="user"></div>
-</div>
+                            <div>
+                                <small class="text-white-50">
+                                    Dompet Utama
+                                </small>
 
-<div class="col-md-3">
-<strong>Tahun</strong>
-<div id="tahun"></div>
-</div>
+                                <h2 class="fw-bold mb-0">
+                                    Rp 23.500.000
+                                </h2>
+                            </div>
 
-<div class="col-md-3">
-<strong>Saldo Akhir</strong>
-<div id="saldo"></div>
-</div>
+                            <div>
+                                <span class="badge bg-light text-primary rounded-pill px-3 py-2">
+                                    Cash Advance PL
+                                </span>
+                            </div>
 
-</div>
+                        </div>
+
+                        <div class="row mt-4">
+
+                            <div class="col-md-4 mb-3">
+                                <small class="text-white-50 d-block">
+                                    Total Penerimaan
+                                </small>
 
-</div>
-
-
-<div class="card p-4">
-
-<div class="d-flex justify-content-between mb-3">
-
-<h5>Transaksi Cash Advance</h5>
-
-<button class="btn btn-primary" id="btnTambah">
-+ Tambah Transaksi
-</button>
-
-</div>
-
-<table class="table table-bordered">
-
-<thead>
-<tr>
-<th>Tanggal</th>
-<th>Jenis</th>
-<th>Deskripsi</th>
-<th>Jumlah</th>
-<th>Saldo Setelah</th>
-</tr>
-</thead>
-
-<tbody id="listTransaksi"></tbody>
-
-</table>
-
-</div>
-
-</div>
-
-
-<!-- MODAL -->
-<div class="modal fade" id="modalTransaksi">
-
-<div class="modal-dialog">
-
-<div class="modal-content">
-
-<div class="modal-header">
-<h5 class="modal-title">Tambah Transaksi</h5>
-<button class="btn-close" data-bs-dismiss="modal"></button>
-</div>
-
-<div class="modal-body">
-
-<form id="formTransaksi">
-
-<div class="mb-3">
-<label>Tanggal</label>
-<input type="date" name="tanggal" class="form-control" required>
-</div>
-
-<div class="mb-3">
-<label>Jenis</label>
-<select name="jenis" class="form-control">
-<option value="penerimaan">Penerimaan</option>
-<option value="pengeluaran">Pengeluaran</option>
-</select>
-</div>
-
-<div class="mb-3">
-<label>Deskripsi</label>
-<input type="text" name="deskripsi" class="form-control">
-</div>
-
-<div class="mb-3">
-<label>Jumlah</label>
-<input type="number" name="jumlah" class="form-control" required>
-</div>
-
-<div class="mb-3">
-<label>Upload Struk</label>
-
-<input 
-    type="file" 
-    name="bukti" 
-    id="bukti"
-    class="form-control"
-    accept="image/*"
->
-</div>
-
-<div class="d-grid mb-3">
-<button type="button" class="btn btn-warning" id="btnOCR">
-Scan OCR Struk
-</button>
-</div>
-
-<!-- PREVIEW -->
-<div class="text-center mb-3">
-<img 
-    id="previewStruk" 
-    src="" 
-    style="max-width:100%; display:none; border-radius:10px;"
->
-</div>
-
-<button class="btn btn-success w-100">
-Simpan
-</button>
-
-</form>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-
-<!-- JS -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-
-<script>
-    const BASE_URL = "{{ env('API_URL') }}";
-</script>
-<script>
-
-let kodeCA = null;
-
-
-/* FORMAT RUPIAH */
-function rupiah(angka){
-    return new Intl.NumberFormat('id-ID',{
-        style:'currency',
-        currency:'IDR'
-    }).format(angka);
-}
-
-
-/* LOAD DATA */
-function loadData(){
-
-    $.ajax({
-        // url:"http://127.0.0.1:8000/api/ca-pl",
-        url: BASE_URL + "/ca-pl",
-        method:"GET",
-        headers:{
-            "x-api-key":1
-        },
-
-        success:function(res){
-
-            let data = res.data[0];
-
-            kodeCA = data.kode_ca;
-
-            $("#judul").text(data.judul_kegiatan);
-            $("#kode").text(data.kode_ca);
-            $("#user").text(data.username);
-            $("#tahun").text(data.tahun_anggaran);
-            $("#saldo").html("<b>"+rupiah(data.saldo_akhir)+"</b>");
-
-            let html = "";
-
-            data.tr_c_a.forEach(function(tr){
-
-                let jumlahClass = tr.jenis === "pengeluaran" ? "jumlah-minus" : "jumlah-plus";
-                let prefix = tr.jenis === "pengeluaran" ? "-" : "+";
-
-                html += `
-                <tr>
-                    <td>${tr.tanggal}</td>
-                    <td>
-                        <span class="badge ${tr.jenis === 'pengeluaran' ? 'bg-danger' : 'bg-success'}">
-                            ${tr.jenis}
-                        </span>
-                    </td>
-                    <td>${tr.deskripsi ?? '-'}</td>
-                    <td class="${jumlahClass}">
-                        ${prefix} ${rupiah(tr.jumlah)}
-                    </td>
-                    <td>${rupiah(tr.saldo_setelah)}</td>
-                </tr>
-                `;
-
-            });
-
-            $("#listTransaksi").html(html);
-
-        },
-
-        error:function(){
-            Swal.fire("Error","Gagal mengambil data","error")
-        }
-
-    });
-
-}
-
-
-
-/* DOCUMENT READY */
-$(document).ready(function(){
-
-    loadData();
-
-
-    /* BUKA MODAL */
-    $("#btnTambah").click(function(){
-        $("#modalTransaksi").modal("show");
-    });
-
-
-    /* SUBMIT FORM */
-    $("#formTransaksi").submit(function(e){
-
-        e.preventDefault();
-
-        let formData = $(this).serialize();
-
-        $.ajax({
-
-            // url:`http://127.0.0.1:8081/api/ca/${kodeCA}/transaksi`,
-            url: BASE_URL + `/ca/${kodeCA}/transaksi`,
-            method:"POST",
-
-            headers:{
-                "x-api-key":1
-            },
-
-            data:formData,
-
-            success:function(res){
-
-                Swal.fire({
-                    icon:"success",
-                    title:"Berhasil",
-                    text:"Transaksi berhasil ditambahkan"
-                });
-
-                $("#modalTransaksi").modal("hide");
-
-                $("#formTransaksi")[0].reset();
-
-                loadData();
-
-            },
-
-            error:function(){
-
-                Swal.fire({
-                    icon:"error",
-                    title:"Gagal",
-                    text:"Gagal menyimpan transaksi"
-                });
-
-            }
-
-        });
-
-    });
-
-
-    /* PREVIEW IMAGE */
-    $("#bukti").change(function(e){
-
-        let file = e.target.files[0];
-
-        if(file){
-
-            let reader = new FileReader();
-
-            reader.onload = function(ev){
-
-                $("#previewStruk")
-                    .attr("src", ev.target.result)
-                    .show();
-
-            }
-
-            reader.readAsDataURL(file);
-
-        }
-
-    });
-
-    /* OCR SCAN */
-    $("#btnOCR").click(function(){
-
-        let file = $("#bukti")[0].files[0];
-
-        if(!file){
-
-            Swal.fire({
-                icon:"warning",
-                title:"Oops",
-                text:"Upload struk dulu"
-            });
-
-            return;
-        }
-
-        let formData = new FormData();
-
-        formData.append("bukti", file);
-
-        Swal.fire({
-            title:'Scanning OCR...',
-            allowOutsideClick:false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        $.ajax({
-
-            url: BASE_URL + "/ocr/scan-struk",
-            method:"POST",
-
-            headers:{
-                "x-api-key":1
-            },
-
-            data:formData,
-
-            processData:false,
-            contentType:false,
-
-            success:function(res){
-
-                Swal.close();
-
-                console.log(res);
-
-                // AUTO ISI FORM
-                $("input[name='tanggal']").val(res.tanggal);
-                $("input[name='deskripsi']").val(res.deskripsi);
-                $("input[name='jumlah']").val(res.jumlah);
-
-                if(res.jenis){
-                    $("select[name='jenis']").val(res.jenis);
-                }
-
-                Swal.fire({
-                    icon:"success",
-                    title:"OCR Berhasil"
-                });
-
-            },
-
-            error:function(){
-
-                Swal.fire({
-                    icon:"error",
-                    title:"OCR gagal"
-                });
-
-            }
-
-        });
-
-    });
-
-});
-
-</script>
+                                <h5 class="fw-bold text-white mb-0">
+                                    Rp 30.000.000
+                                </h5>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <small class="text-white-50 d-block">
+                                    Total Pengeluaran
+                                </small>
+
+                                <h5 class="fw-bold text-warning mb-0">
+                                    Rp 6.500.000
+                                </h5>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <small class="text-white-50 d-block">
+                                    Total Dompet
+                                </small>
+
+                                <h5 class="fw-bold mb-0">
+                                    2 Wallet
+                                </h5>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Right -->
+                <div class="col-lg-4">
+
+                    <div class="p-4 bg-white h-100 d-flex flex-column justify-content-center">
+
+                        <div class="mb-3">
+                            <small class="text-muted d-block">
+                                Status
+                            </small>
+
+                            <span class="badge bg-success rounded-pill px-3 py-2">
+                                Active
+                            </span>
+                        </div>
+
+                        <div class="mb-3">
+                            <small class="text-muted d-block">
+                                Last Update
+                            </small>
+
+                            <strong>
+                                16 Mei 2026
+                            </strong>
+                        </div>
+
+                        <button class="btn btn-primary rounded-pill w-100">
+                            <i class="bi bi-eye"></i>
+                            Lihat Detail Dompet
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- List Wallet -->
+        <div class="row g-4">
+
+            <!-- Card -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card wallet-card">
+
+                    <div class="wallet-header">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <small>Kode CA</small>
+                                <h5 class="fw-bold mb-0">CA-2026-001</h5>
+                            </div>
+
+                            <span class="wallet-category">
+                                Operasional
+                            </span>
+                        </div>
+
+                        <div class="mt-4">
+                            <small>Total Saldo</small>
+                            <div class="wallet-balance">
+                                Rp 15.000.000
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="wallet-body">
+
+                        <div class="mb-3">
+                            <div class="info-label">Judul Kegiatan</div>
+                            <div class="info-value">
+                                Pengadaan Infrastruktur Server
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <div class="info-label">Penerimaan</div>
+                                <div class="info-value text-success">
+                                    Rp 20.000.000
+                                </div>
+                            </div>
+
+                            <div class="col-6 mb-3">
+                                <div class="info-label">Pengeluaran</div>
+                                <div class="info-value text-danger">
+                                    Rp 5.000.000
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+
+                            <span class="badge bg-success status-badge">
+                                Active
+                            </span>
+
+                            <button class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                Detail
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Card -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card wallet-card">
+
+                    <div class="wallet-header bg-success">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <small>Kode CA</small>
+                                <h5 class="fw-bold mb-0">CA-2026-002</h5>
+                            </div>
+
+                            <span class="wallet-category">
+                                Marketing
+                            </span>
+                        </div>
+
+                        <div class="mt-4">
+                            <small>Total Saldo</small>
+                            <div class="wallet-balance">
+                                Rp 8.500.000
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="wallet-body">
+
+                        <div class="mb-3">
+                            <div class="info-label">Judul Kegiatan</div>
+                            <div class="info-value">
+                                Event Promosi Produk
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <div class="info-label">Penerimaan</div>
+                                <div class="info-value text-success">
+                                    Rp 10.000.000
+                                </div>
+                            </div>
+
+                            <div class="col-6 mb-3">
+                                <div class="info-label">Pengeluaran</div>
+                                <div class="info-value text-danger">
+                                    Rp 1.500.000
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+
+                            <span class="badge bg-warning text-dark status-badge">
+                                Pending
+                            </span>
+
+                            <button class="btn btn-outline-success btn-sm rounded-pill px-3">
+                                Detail
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
 
 </body>
+
 </html>

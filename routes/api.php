@@ -23,11 +23,13 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 // Route::get('/ca', [CashAdvanceController::class, 'index']);
 // Route::get('/ca/{kode_ca}', [CashAdvanceController::class, 'showByKode']);
-// Route::post('/post_ca', [CashAdvanceController::class, 'post_ca']);
+
 // Route::post('/ca/{kode}/transaksi', [CashAdvanceController::class, 'postTransaksi']);
 // Route::delete('/ca/{kode_ca}', [CashAdvanceController::class, 'delete_ca']);
 
-Route::get('/ca-pl', [CashAdvanceController::class, 'caPL']);
+Route::post('/post_ca', [CashAdvanceController::class, 'post_ca']);
+Route::post('/ca-pl', [CashAdvanceController::class, 'caPL']);
+Route::delete('/ca/{kode_ca}', [CashAdvanceController::class, 'delete_ca']);
 Route::post('/ca/{kode_ca}/transaksi', [CashAdvanceController::class, 'postTransaksiCaPl']);
 Route::delete('/ca/transaksi/{id}', [CashAdvanceController::class, 'deleteTransaksiCaPl']);
 Route::post('/ocr/scan-struk', [OCRController::class, 'scan']);
