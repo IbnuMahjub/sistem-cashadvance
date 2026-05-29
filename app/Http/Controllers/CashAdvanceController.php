@@ -38,7 +38,8 @@ class CashAdvanceController extends Controller
 
     public function showByKode()
     {
-        $data = tr_ca::with('trCA')->where('kode_ca', request('kode_ca'))->first();
+        $data = tr_ca::with(['tm_category_ca', 'transaksi'])->where('kode_ca', request('kode_ca'))->first();
+        // $data = tr_ca::with(['trCA', 'tm_category_ca'])->where('kode_ca', request('kode_ca'))->first();
 
         if (!$data) {
             return response()->json([
@@ -63,9 +64,9 @@ class CashAdvanceController extends Controller
             'judul_kegiatan' => 'required',
             'tahun_anggaran' => 'required',
             'tanggal_mulai' => 'required',
-            'tanggal_selesai' => 'required',
+            'tanggal_selesai' => 'nullable',
             'total_penerimaan' => 'required',
-            'total_pengeluaran' => 'required',
+            'total_pengeluaran' => 'nullable',
             // 'id_ca_category' => 'required',
             'id_ca_category' => 'required|in:1,2',
         ], [
@@ -74,12 +75,26 @@ class CashAdvanceController extends Controller
             'judul_kegiatan.required' => 'Judul Kegiatan harus diisi',
             'tahun_anggaran.required' => 'Tahun Anggaran harus diisi',
             'tanggal_mulai.required' => 'Tanggal Mulai harus diisi',
-            'tanggal_selesai.required' => 'Tanggal Selesai harus diisi',
+            // 'tanggal_selesai.required' => 'Tanggal Selesai harus diisi',
             'total_penerimaan.required' => 'Total Penerimaan harus diisi',
-            'total_pengeluaran.required' => 'Total Pengeluaran harus diisi',
+            // 'total_pengeluaran.required' => 'Total Pengeluaran harus diisi',
             'id_ca_category.required' => 'Kategori CA harus diisi',
             'id_ca_category.in' => 'Kategori CA hanya boleh 1 (Dompet PL) atau 2 (Dompet Kegiatan)',
         ]);
+
+        if ($validated['id_ca_category'] == 1) {
+
+            $cekDompetPL = tr_ca::where('id_ca_category', 1)
+                ->where('tahun_anggaran', $validated['tahun_anggaran'])
+                ->exists();
+
+            if ($cekDompetPL) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dompet PL sudah dibuat pada tahun anggaran ' . $validated['tahun_anggaran']
+                ], 422);
+            }
+        }
 
         $tahun = $validated['tahun_anggaran'];
 
@@ -130,24 +145,42 @@ class CashAdvanceController extends Controller
 
         return DB::transaction(function () use ($validated, $kode) {
 
-            // Cari CA berdasarkan kode
+            // Cari data CA berdasarkan kode
             $ca = tr_ca::where('kode_ca', $kode)->firstOrFail();
 
-            // Ambil saldo terakhir
+            // Ambil transaksi terakhir
             $lastSaldo = $ca->trCA()->latest()->first();
 
-            $saldoSebelumnya = $lastSaldo ? $lastSaldo->saldo_setelah : 0;
+            // Saldo awal dari pengajuan
+            $saldoAwal = (float) $ca->total_penerimaan;
 
-            // Hitung saldo baru
+            // Jika ada transaksi gunakan saldo terakhir
+            $saldoSebelumnya = $lastSaldo
+                ? (float) $lastSaldo->saldo_setelah
+                : $saldoAwal;
+
+            // Hitung saldo
             if ($validated['jenis'] == 'penerimaan') {
-                $saldoBaru = $saldoSebelumnya + $validated['jumlah'];
-                $ca->total_penerimaan += $validated['jumlah'];
+
+                $saldoBaru = $saldoSebelumnya + (float) $validated['jumlah'];
+
+                $ca->total_penerimaan += (float) $validated['jumlah'];
+
             } else {
-                $saldoBaru = $saldoSebelumnya - $validated['jumlah'];
-                $ca->total_pengeluaran += $validated['jumlah'];
+
+                if ((float) $validated['jumlah'] > $saldoSebelumnya) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Saldo tidak mencukupi'
+                    ], 400);
+                }
+
+                $saldoBaru = $saldoSebelumnya - (float) $validated['jumlah'];
+
+                $ca->total_pengeluaran += (float) $validated['jumlah'];
             }
 
-            // Simpan transaksi lewat relasi
+            // Simpan transaksi detail
             $transaksi = $ca->trCA()->create([
                 'tanggal' => $validated['tanggal'],
                 'jenis' => $validated['jenis'],
@@ -156,13 +189,18 @@ class CashAdvanceController extends Controller
                 'saldo_setelah' => $saldoBaru,
             ]);
 
-            // Update saldo akhir di header
+            // Update saldo akhir di tabel header
             $ca->saldo_akhir = $saldoBaru;
             $ca->save();
 
             return response()->json([
                 'success' => true,
-                'data' => $transaksi
+                'message' => 'Transaksi berhasil disimpan',
+                'data' => $transaksi,
+                'saldo' => [
+                    'saldo_sebelumnya' => $saldoSebelumnya,
+                    'saldo_setelah' => $saldoBaru,
+                ]
             ]);
         });
     }
@@ -221,34 +259,95 @@ class CashAdvanceController extends Controller
         // ]);
     }
 
+    // public function postTransaksiCaPl(Request $request, $kode_ca)
+    // {
+    //     $userId = $request->header('x-api-key');
+
+    //     if (!$userId) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'x-api-key header tidak ditemukan'
+    //         ], 401);
+    //     }
+
+    //     // Validasi
+    //     $request->validate([
+    //         'tanggal' => 'required|date',
+    //         'jenis' => 'required|in:penerimaan,pengeluaran',
+    //         'bukti' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+    //         'deskripsi' => 'nullable|string',
+    //         'jumlah' => 'required|numeric|min:0'
+    //     ]);
+
+    //     if ($request->file('bukti')) {
+    //         $bukti = $request->file('bukti')->store('bukti-transaksi', 'public');
+    //     }
+
+    //     // Ambil CA
+    //     $ca = tr_ca::where('kode_ca', $kode_ca)
+    //         ->where('user_id', $userId)
+    //         ->first();
+
+    //     if (!$ca) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Data CA tidak ditemukan'
+    //         ], 404);
+    //     }
+
+    //     // Hitung saldo baru
+    //     $saldoSebelum = $ca->saldo_akhir;
+    //     $jumlah = $request->jumlah;
+
+    //     if ($request->jenis == 'penerimaan') {
+    //         $saldoSetelah = $saldoSebelum + $jumlah;
+    //         $ca->total_penerimaan += $jumlah;
+    //     } else {
+    //         $saldoSetelah = $saldoSebelum - $jumlah;
+    //         $ca->total_pengeluaran += $jumlah;
+    //     }
+
+    //     // Simpan transaksi
+    //     $transaksi = tr_ca_transaction::create([
+    //         'tr_ca_id' => $ca->id,
+    //         'tanggal' => $request->tanggal,
+    //         'jenis' => $request->jenis,
+    //         'deskripsi' => $request->deskripsi,
+    //         'jumlah' => $jumlah,
+    //         'bukti' => $bukti,
+    //         'saldo_setelah' => $saldoSetelah,
+    //     ]);
+
+    //     // Update saldo di CA
+    //     $ca->saldo_akhir = $saldoSetelah;
+    //     $ca->save();
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Transaksi berhasil ditambahkan',
+    //         'data' => $transaksi
+    //     ]);
+    // }
     public function postTransaksiCaPl(Request $request, $kode_ca)
     {
-        $userId = $request->header('x-api-key');
-
-        if (!$userId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'x-api-key header tidak ditemukan'
-            ], 401);
-        }
-
         // Validasi
         $request->validate([
             'tanggal' => 'required|date',
             'jenis' => 'required|in:penerimaan,pengeluaran',
             'bukti' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'deskripsi' => 'nullable|string',
-            'jumlah' => 'required|numeric|min:0'
+            'jumlah' => 'required|numeric|min:1'
         ]);
 
+        $bukti = null;
+
+        // Upload bukti
         if ($request->file('bukti')) {
             $bukti = $request->file('bukti')->store('bukti-transaksi', 'public');
         }
 
-        // Ambil CA
-        $ca = tr_ca::where('kode_ca', $kode_ca)
-            ->where('user_id', $userId)
-            ->first();
+        // Cari data CA berdasarkan kode
+        $ca = tr_ca::where('kode_ca', $kode_ca)->first();
 
         if (!$ca) {
             return response()->json([
@@ -257,19 +356,69 @@ class CashAdvanceController extends Controller
             ], 404);
         }
 
-        // Hitung saldo baru
-        $saldoSebelum = $ca->saldo_akhir;
-        $jumlah = $request->jumlah;
+        $jumlah = (float) $request->jumlah;
+
+        /*
+        |--------------------------------------------------------------------------
+        | SALDO AWAL
+        |--------------------------------------------------------------------------
+        | Kalau belum ada transaksi:
+        | saldo = total_penerimaan
+        |
+        | Kalau sudah ada transaksi:
+        | pakai saldo_akhir terakhir
+        |--------------------------------------------------------------------------
+        */
+
+        $saldoSebelum = $ca->saldo_akhir > 0
+            ? (float) $ca->saldo_akhir
+            : (float) $ca->total_penerimaan;
+
+        /*
+        |--------------------------------------------------------------------------
+        | HITUNG SALDO
+        |--------------------------------------------------------------------------
+        */
 
         if ($request->jenis == 'penerimaan') {
+
+            // saldo bertambah
             $saldoSetelah = $saldoSebelum + $jumlah;
+
+            // total penerimaan dicatat sebagai total dana masuk
             $ca->total_penerimaan += $jumlah;
+
         } else {
+
+            // cek saldo cukup
+            if ($jumlah > $saldoSebelum) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Saldo tidak mencukupi'
+                ], 400);
+            }
+
+            // saldo berkurang
             $saldoSetelah = $saldoSebelum - $jumlah;
+
+            // hanya total pengeluaran yang bertambah
             $ca->total_pengeluaran += $jumlah;
+
+            /*
+            |--------------------------------------------------------------------------
+            | JANGAN UBAH total_penerimaan
+            |--------------------------------------------------------------------------
+            | total_penerimaan tetap jadi nilai awal / total dana masuk
+            |--------------------------------------------------------------------------
+            */
         }
 
-        // Simpan transaksi
+        /*
+        |--------------------------------------------------------------------------
+        | SIMPAN TRANSAKSI
+        |--------------------------------------------------------------------------
+        */
+
         $transaksi = tr_ca_transaction::create([
             'tr_ca_id' => $ca->id,
             'tanggal' => $request->tanggal,
@@ -280,14 +429,23 @@ class CashAdvanceController extends Controller
             'saldo_setelah' => $saldoSetelah,
         ]);
 
-        // Update saldo di CA
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE SALDO AKHIR
+        |--------------------------------------------------------------------------
+        */
+
         $ca->saldo_akhir = $saldoSetelah;
         $ca->save();
 
         return response()->json([
             'success' => true,
             'message' => 'Transaksi berhasil ditambahkan',
-            'data' => $transaksi
+            'data' => $transaksi,
+            'saldo' => [
+                'saldo_sebelum' => $saldoSebelum,
+                'saldo_setelah' => $saldoSetelah,
+            ]
         ]);
     }
 

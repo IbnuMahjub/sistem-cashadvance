@@ -12,11 +12,16 @@ class tr_ca extends Model
 
     protected $table = 'tr_ca';
     protected $guarded = [];
-    protected $fillable = ['kode_ca', 'judul_kegiatan', 'tahun_anggaran', 'tanggal_mulai', 'tanggal_selesai', 'total_penerimaan', 'total_pengeluaran', 'saldo_akhir', 'status', 'created_by'];
+    // protected $fillable = ['kode_ca', 'judul_kegiatan', 'tahun_anggaran', 'tanggal_mulai', 'tanggal_selesai', 'total_penerimaan', 'total_pengeluaran', 'saldo_akhir', 'status', 'created_by'];
 
     public function trCA()
     {
         return $this->hasMany(tr_ca_transaction::class);
+    }
+
+    public function transaksi()
+    {
+        return $this->hasMany(tr_ca_transaction::class, 'tr_ca_id', 'id');
     }
 
     public function tm_category_ca()

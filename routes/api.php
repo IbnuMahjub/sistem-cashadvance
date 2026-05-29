@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::post('/post_ca', [CashAdvanceController::class, 'post_ca']);
 Route::post('/ca-pl', [CashAdvanceController::class, 'caPL']);
+Route::get('/ca/{kode_ca}', [CashAdvanceController::class, 'showByKode']);
 Route::delete('/ca/{kode_ca}', [CashAdvanceController::class, 'delete_ca']);
 Route::post('/ca/{kode_ca}/transaksi', [CashAdvanceController::class, 'postTransaksiCaPl']);
 Route::delete('/ca/transaksi/{id}', [CashAdvanceController::class, 'deleteTransaksiCaPl']);

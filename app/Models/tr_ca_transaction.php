@@ -22,7 +22,12 @@ class tr_ca_transaction extends Model
         'saldo_setelah',
     ];
 
-    public function trCA()
+    // public function trCA()
+    // {
+    //     return $this->belongsTo(tr_ca::class);
+    // }
+
+    public function tr_ca()
     {
         return $this->belongsTo(tr_ca::class);
     }
