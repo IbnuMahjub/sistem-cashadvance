@@ -7,6 +7,7 @@ use App\Models\tr_ca;
 use App\Models\tr_ca_transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Log;
 
 class CashAdvanceController extends Controller
@@ -449,18 +450,9 @@ class CashAdvanceController extends Controller
         ]);
     }
 
-    public function deleteTransaksiCaPl(Request $request, $id)
+    public function deleteTransaksiCaPl($id)
     {
-        $userId = $request->header('x-api-key');
-
-        if (!$userId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'x-api-key header tidak ditemukan'
-            ], 401);
-        }
-
-        // Ambil transaksi
+        // Cari transaksi
         $transaksi = tr_ca_transaction::find($id);
 
         if (!$transaksi) {
@@ -470,10 +462,8 @@ class CashAdvanceController extends Controller
             ], 404);
         }
 
-        // Ambil CA
-        $ca = tr_ca::where('id', $transaksi->tr_ca_id)
-            ->where('user_id', $userId)
-            ->first();
+        // Ambil data CA
+        $ca = tr_ca::find($transaksi->tr_ca_id);
 
         if (!$ca) {
             return response()->json([
@@ -482,21 +472,55 @@ class CashAdvanceController extends Controller
             ], 404);
         }
 
-        $jumlah = $transaksi->jumlah;
+        $jumlah = (float) $transaksi->jumlah;
 
-        // 🔥 Rollback saldo
+        /*
+        |--------------------------------------------------------------------------
+        | Kembalikan saldo berdasarkan jenis transaksi
+        |--------------------------------------------------------------------------
+        */
+
         if ($transaksi->jenis == 'penerimaan') {
-            $ca->total_penerimaan -= $jumlah;
+
+            // rollback saldo penerimaan
             $ca->saldo_akhir -= $jumlah;
+
+            // rollback total penerimaan
+            $ca->total_penerimaan -= $jumlah;
+
         } else {
-            $ca->total_pengeluaran -= $jumlah;
+
+            // rollback saldo pengeluaran
             $ca->saldo_akhir += $jumlah;
+
+            // rollback total pengeluaran
+            $ca->total_pengeluaran -= $jumlah;
         }
 
-        // Hapus transaksi
+        /*
+        |--------------------------------------------------------------------------
+        | Hapus file bukti jika ada
+        |--------------------------------------------------------------------------
+        */
+
+        if ($transaksi->bukti && Storage::disk('public')->exists($transaksi->bukti)) {
+            Storage::disk('public')->delete($transaksi->bukti);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hapus transaksi
+        |--------------------------------------------------------------------------
+        */
+
         $transaksi->delete();
 
-        // Save CA
+        /*
+        |--------------------------------------------------------------------------
+        | Simpan perubahan saldo
+        |--------------------------------------------------------------------------
+        */
+
         $ca->save();
 
         return response()->json([
