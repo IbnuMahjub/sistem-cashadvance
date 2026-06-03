@@ -54,6 +54,23 @@ class CashAdvanceController extends Controller
             'data' => $data
         ]);
     }
+    public function showTransaksiByKode()
+    {
+        // $data = tr_ca::with(['tm_category_ca', 'transaksi'])->where('kode_ca', request('kode_ca'))->first();
+        // $data = tr_ca::with(['trCA', 'tm_category_ca'])->where('kode_ca', request('kode_ca'))->first();
+
+        if (!$data) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Data tidak ditemukan',
+                'data' => []
+            ]);
+        }
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
 
 
     public function post_ca(Request $request)
@@ -83,23 +100,23 @@ class CashAdvanceController extends Controller
             'id_ca_category.in' => 'Kategori CA hanya boleh 1 (Dompet PL) atau 2 (Dompet Kegiatan)',
         ]);
 
-        if ($validated['id_ca_category'] == 1) {
+        // if ($validated['id_ca_category'] == 1) {
 
-            // $cekDompetPL = tr_ca::where('id_ca_category', 1)
-            //     ->where('tahun_anggaran', $validated['tahun_anggaran'])
-            //     ->exists();
-            $cekDompetPL = tr_ca::where('id_ca_category', 1)
-                ->where('tahun_anggaran', $validated['tahun_anggaran'])
-                ->where('user_id', $validated['user_id'])
-                ->exists();
+        //     // $cekDompetPL = tr_ca::where('id_ca_category', 1)
+        //     //     ->where('tahun_anggaran', $validated['tahun_anggaran'])
+        //     //     ->exists();
+        //     $cekDompetPL = tr_ca::where('id_ca_category', 1)
+        //         ->where('tahun_anggaran', $validated['tahun_anggaran'])
+        //         ->where('user_id', $validated['user_id'])
+        //         ->exists();
 
-            if ($cekDompetPL) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User sudah memiliki Dompet PL pada tahun anggaran ' . $validated['tahun_anggaran']
-                ], 422);
-            }
-        }
+        //     if ($cekDompetPL) {
+        //         return response()->json([
+        //             'success' => false,
+        //             'message' => 'User sudah memiliki Dompet PL pada tahun anggaran ' . $validated['tahun_anggaran']
+        //         ], 422);
+        //     }
+        // }
 
         $tahun = $validated['tahun_anggaran'];
 
