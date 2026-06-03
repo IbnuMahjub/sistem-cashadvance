@@ -54,21 +54,24 @@ class CashAdvanceController extends Controller
             'data' => $data
         ]);
     }
-    public function showTransaksiByKode()
+    public function showTransaksiByKode($kode_ca)
     {
-        // $data = tr_ca::with(['tm_category_ca', 'transaksi'])->where('kode_ca', request('kode_ca'))->first();
-        // $data = tr_ca::with(['trCA', 'tm_category_ca'])->where('kode_ca', request('kode_ca'))->first();
+        $ca = tr_ca::where('kode_ca', $kode_ca)->first();
 
-        if (!$data) {
+        if (!$ca) {
             return response()->json([
-                'status' => false,
-                'message' => 'Data tidak ditemukan',
-                'data' => []
-            ]);
+                'success' => false,
+                'message' => 'Data tidak ditemukan'
+            ], 404);
         }
+
+        $transaksi = tr_ca_transaction::where('tr_ca_id', $ca->id)
+            ->orderBy('tanggal', 'desc')
+            ->get();
+
         return response()->json([
             'success' => true,
-            'data' => $data
+            'data' => $transaksi
         ]);
     }
 
@@ -137,6 +140,7 @@ class CashAdvanceController extends Controller
 
         $validated['kode_ca'] = $kode;
         $validated['status'] = 'draft';
+        $validated['saldo_akhir'] = $validated['total_penerimaan'];
 
 
         $data = tr_ca::create($validated);
@@ -243,6 +247,7 @@ class CashAdvanceController extends Controller
         $userId = $request->user_id;
         $dataCategoryId = $request->data_category_id;
         $tahunAnggaran = $request->tahun_anggaran;
+        $status = $request->status;
 
 
         $query = tr_ca::with([
@@ -257,6 +262,10 @@ class CashAdvanceController extends Controller
         }
         if (!empty($tahunAnggaran)) {
             $query->where('tahun_anggaran', $tahunAnggaran);
+        }
+
+        if (!empty($status)) {
+            $query->where('status', $status);
         }
 
         $data = $query->get();

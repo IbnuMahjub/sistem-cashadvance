@@ -25,6 +25,7 @@ class CashAdvanceResource extends JsonResource
             'user_id' => $this->user_id,
             'username' => $this->username,
             'judul_kegiatan' => $this->judul_kegiatan,
+            'tanggal_mulai' => $this->tanggal_mulai,
             'tahun_anggaran' => $this->tahun_anggaran,
             'total_penerimaan' => $this->total_penerimaan,
             'total_pengeluaran' => $this->total_pengeluaran,
@@ -33,7 +34,7 @@ class CashAdvanceResource extends JsonResource
             // 'tanggal_selesai' => $this->tanggal_selesai,
             // 'total_penerimaan' => $this->total_penerimaan,
             // 'total_pengeluaran' => $this->total_pengeluaran,
-            // 'saldo_akhir' => $this->saldo_akhir,
+            'saldo_akhir' => $this->saldo_akhir,
             // 'status' => $this->status,
         ];
         return $data;
