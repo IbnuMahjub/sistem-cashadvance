@@ -85,14 +85,18 @@ class CashAdvanceController extends Controller
 
         if ($validated['id_ca_category'] == 1) {
 
+            // $cekDompetPL = tr_ca::where('id_ca_category', 1)
+            //     ->where('tahun_anggaran', $validated['tahun_anggaran'])
+            //     ->exists();
             $cekDompetPL = tr_ca::where('id_ca_category', 1)
                 ->where('tahun_anggaran', $validated['tahun_anggaran'])
+                ->where('user_id', $validated['user_id'])
                 ->exists();
 
             if ($cekDompetPL) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Dompet PL sudah dibuat pada tahun anggaran ' . $validated['tahun_anggaran']
+                    'message' => 'User sudah memiliki Dompet PL pada tahun anggaran ' . $validated['tahun_anggaran']
                 ], 422);
             }
         }
