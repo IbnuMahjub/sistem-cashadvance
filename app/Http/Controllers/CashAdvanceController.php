@@ -87,12 +87,23 @@ class CashAdvanceController extends Controller
             ], 404);
         }
 
+        // $transaksi = tr_ca_transaction::where('tr_ca_id', $ca->id)
+        //     ->orderBy('tanggal', 'desc')
+        //     ->get()
+        //     ->map(function ($item) {
+        //         $item->bukti_url = $item->bukti
+        //             ? asset(Storage::url($item->bukti))
+        //             : null;
+
+        //         return $item;
+        //     });
+
         $transaksi = tr_ca_transaction::where('tr_ca_id', $ca->id)
             ->orderBy('tanggal', 'desc')
             ->get()
             ->map(function ($item) {
                 $item->bukti_url = $item->bukti
-                    ? asset(Storage::url($item->bukti))
+                    ? Storage::disk('s3')->url($item->bukti)
                     : null;
 
                 return $item;
@@ -402,8 +413,13 @@ class CashAdvanceController extends Controller
         $bukti = null;
 
         // Upload bukti
-        if ($request->file('bukti')) {
-            $bukti = $request->file('bukti')->store('bukti-transaksi', 'public');
+        // if ($request->file('bukti')) {
+        //     Storage::disk('s3')->url($path);
+        //     // $bukti = $request->file('bukti')->store('bukti-transaksi', 'public');
+        // }
+
+        if ($request->hasFile('bukti')) {
+            $bukti = $request->file('bukti')->store('bukti-transaksi', 's3');
         }
 
         // Cari data CA berdasarkan kode
