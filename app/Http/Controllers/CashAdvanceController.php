@@ -54,6 +54,28 @@ class CashAdvanceController extends Controller
             'data' => $data
         ]);
     }
+    // public function showTransaksiByKode($kode_ca)
+    // {
+    //     $ca = tr_ca::where('kode_ca', $kode_ca)->first();
+
+    //     if (!$ca) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Data tidak ditemukan'
+    //         ], 404);
+    //     }
+
+    //     $transaksi = tr_ca_transaction::where('tr_ca_id', $ca->id)
+    //         ->orderBy('tanggal', 'desc')
+    //         ->get();
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => $transaksi
+    //     ]);
+    // }
+    // use Illuminate\Support\Facades\Storage;
+
     public function showTransaksiByKode($kode_ca)
     {
         $ca = tr_ca::where('kode_ca', $kode_ca)->first();
@@ -67,7 +89,14 @@ class CashAdvanceController extends Controller
 
         $transaksi = tr_ca_transaction::where('tr_ca_id', $ca->id)
             ->orderBy('tanggal', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                $item->bukti_url = $item->bukti
+                    ? asset(Storage::url($item->bukti))
+                    : null;
+
+                return $item;
+            });
 
         return response()->json([
             'success' => true,
