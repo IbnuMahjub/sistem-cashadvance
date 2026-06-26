@@ -28,6 +28,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // Route::delete('/ca/{kode_ca}', [CashAdvanceController::class, 'delete_ca']);
 
 Route::post('/post_ca', [CashAdvanceController::class, 'post_ca']);
+Route::post('/close-ca/{kode_ca}', [CashAdvanceController::class, 'close_ca']);
 Route::get('/ca-pl', [CashAdvanceController::class, 'caPL']);
 Route::get('/ca/{kode_ca}', [CashAdvanceController::class, 'showByKode']);
 
@@ -38,3 +39,10 @@ Route::delete('/ca/transaksi/{id}', [CashAdvanceController::class, 'deleteTransa
 Route::post('/ocr/scan-struk', [OCRController::class, 'scan']);
 
 Route::get('/wallet-pl', [CashAdvanceController::class, 'walletPL']);
+Route::get('/wallet-pl-riwayat', [CashAdvanceController::class, 'walletPLRiwayat']);
+Route::get('/wallet-pl/{kode_ca}', [CashAdvanceController::class, 'walletPLshowByKode']);
+Route::post('/wallet-pl/{kode_ca}/transaksi', [CashAdvanceController::class, 'walletPLPostTransaksi']);
+
+Route::post('/topup-wallet-pl', [CashAdvanceController::class, 'topupWalletPL']);
+Route::post('/esekusi-topup-wallet-pl', [CashAdvanceController::class, 'esekusiTopupWalletPL']);
+Route::post('/topup-wallet-kegiatan', [CashAdvanceController::class, 'topupWalletKegiatan']);

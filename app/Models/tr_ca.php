@@ -14,14 +14,14 @@ class tr_ca extends Model
     protected $guarded = [];
     // protected $fillable = ['kode_ca', 'judul_kegiatan', 'tahun_anggaran', 'tanggal_mulai', 'tanggal_selesai', 'total_penerimaan', 'total_pengeluaran', 'saldo_akhir', 'status', 'created_by'];
 
-    public function trCA()
+    public function tr_ca_transaction()
     {
-        return $this->hasMany(tr_ca_transaction::class);
+        return $this->hasMany(tr_ca_transaction::class, 'tr_ca_id', 'id');
     }
 
     public function transaksi()
     {
-        return $this->hasMany(tr_ca_transaction::class, 'tr_ca_id', 'id');
+        return $this->belongsTo(tr_ca_transaction::class, 'tr_ca_id', 'id');
     }
 
     public function tm_category_ca()

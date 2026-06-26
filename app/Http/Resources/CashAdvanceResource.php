@@ -15,6 +15,7 @@ class CashAdvanceResource extends JsonResource
     public function toArray(Request $request): array
     {
         // return parent::toArray($request);
+
         $data = [
             'data_category' => [
                 'id' => $this->tm_category_ca->id,
@@ -30,11 +31,16 @@ class CashAdvanceResource extends JsonResource
             'total_penerimaan' => $this->total_penerimaan,
             'total_pengeluaran' => $this->total_pengeluaran,
             'status' => $this->status,
+            'is_active' => $this->is_active,
+            'is_active_label' => $this->is_active == 1
+                ? 'Aktif'
+                : 'Tidak Aktif',
             // 'tanggal_mulai' => $this->tanggal_mulai,
             // 'tanggal_selesai' => $this->tanggal_selesai,
             // 'total_penerimaan' => $this->total_penerimaan,
             // 'total_pengeluaran' => $this->total_pengeluaran,
             'saldo_akhir' => $this->saldo_akhir,
+            'created_at' => $this->created_at->format('d-m-Y'),
             // 'status' => $this->status,
         ];
         return $data;

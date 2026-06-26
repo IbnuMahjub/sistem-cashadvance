@@ -20,6 +20,7 @@ class tr_ca_transaction extends Model
         'bukti',
         'jumlah',
         'saldo_setelah',
+        'kategori'
     ];
 
     // public function trCA()
@@ -30,5 +31,10 @@ class tr_ca_transaction extends Model
     public function tr_ca()
     {
         return $this->belongsTo(tr_ca::class);
+    }
+
+    public function cashAdvance()
+    {
+        return $this->belongsTo(tr_ca::class, 'tr_ca_id', 'id');
     }
 }

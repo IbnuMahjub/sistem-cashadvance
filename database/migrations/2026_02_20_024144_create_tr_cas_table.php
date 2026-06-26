@@ -23,7 +23,10 @@ return new class extends Migration {
             $table->decimal('total_penerimaan', 15, 2)->default(0);
             $table->decimal('total_pengeluaran', 15, 2)->default(0);
             $table->decimal('saldo_akhir', 15, 2)->default(0);
+            $table->string('bukti')->nullable();
             $table->enum('status', ['draft', 'submitted', 'approved', 'rejected', 'closing'])->default('draft');
+            // $table->string('is_active')->default(1);
+            $table->boolean('is_active')->default(1);
             $table->foreignId('created_by')->nullable();
             $table->timestamps();
         });
