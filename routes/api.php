@@ -32,17 +32,26 @@ Route::post('/close-ca/{kode_ca}', [CashAdvanceController::class, 'close_ca']);
 Route::get('/ca-pl', [CashAdvanceController::class, 'caPL']);
 Route::get('/ca/{kode_ca}', [CashAdvanceController::class, 'showByKode']);
 
-Route::get('/transaksi/{kode_ca}', [CashAdvanceController::class, 'showTransaksiByKode']);
+
 Route::delete('/ca/{kode_ca}', [CashAdvanceController::class, 'delete_ca']);
 Route::post('/ca/{kode_ca}/transaksi', [CashAdvanceController::class, 'postTransaksiCaPl']);
 Route::delete('/ca/transaksi/{id}', [CashAdvanceController::class, 'deleteTransaksiCaPl']);
 Route::post('/ocr/scan-struk', [OCRController::class, 'scan']);
 
 Route::get('/wallet-pl', [CashAdvanceController::class, 'walletPL']);
-Route::get('/wallet-pl-riwayat', [CashAdvanceController::class, 'walletPLRiwayat']);
-Route::get('/wallet-pl/{kode_ca}', [CashAdvanceController::class, 'walletPLshowByKode']);
+Route::get('/table-wallet-pl', [CashAdvanceController::class, 'tableWalletPL']);
+// Route::get('/wallet-pl-riwayat', [CashAdvanceController::class, 'walletPLRiwayat']);
+Route::get('/transaksi-wallet-pl/{kode_ca}', [CashAdvanceController::class, 'showTransaksiByKode']);
+// Route::get('/wallet-pl/{kode_ca}', [CashAdvanceController::class, 'walletPLshowByKode']);
 Route::post('/wallet-pl/{kode_ca}/transaksi', [CashAdvanceController::class, 'walletPLPostTransaksi']);
+
 
 Route::post('/topup-wallet-pl', [CashAdvanceController::class, 'topupWalletPL']);
 Route::post('/esekusi-topup-wallet-pl', [CashAdvanceController::class, 'esekusiTopupWalletPL']);
+
+
+Route::get('/cashadvance', [CashAdvanceController::class, 'cashadvance']);
+
+
 Route::post('/topup-wallet-kegiatan', [CashAdvanceController::class, 'topupWalletKegiatan']);
+Route::post('/kegiatan/{kode_ca}/transaksi', [CashAdvanceController::class, 'postTransaksiKegiatan']);
