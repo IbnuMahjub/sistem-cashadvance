@@ -13,16 +13,36 @@ use Log;
 
 class CashAdvanceController extends Controller
 {
-    // public function index()
-    // {
-    //     // return response()->json(['data' => 'hello']);
-    //     $data = tr_ca::with('trCA')->get();
+    private function recalculateSaldo($ca)
+    {
+        $transaksi = tr_ca_transaction::where('tr_ca_id', $ca->id)
+            ->orderBy('tanggal')
+            ->orderBy('id')
+            ->get();
 
-    //     return response()->json([
-    //         'success' => true,
-    //         'data' => $data
-    //     ]);
-    // }
+        $saldo = 0;
+        $totalPenerimaan = 0;
+        $totalPengeluaran = 0;
+
+        foreach ($transaksi as $item) {
+
+            if ($item->jenis == 'penerimaan') {
+                $saldo += $item->jumlah;
+                $totalPenerimaan += $item->jumlah;
+            } else {
+                $saldo -= $item->jumlah;
+                $totalPengeluaran += $item->jumlah;
+            }
+
+            $item->saldo_setelah = $saldo;
+            $item->save();
+        }
+
+        $ca->total_penerimaan = $totalPenerimaan;
+        $ca->total_pengeluaran = $totalPengeluaran;
+        $ca->saldo_akhir = $saldo;
+        $ca->save();
+    }
 
     public function index(Request $request)
     {
@@ -55,23 +75,6 @@ class CashAdvanceController extends Controller
             'data' => $data
         ]);
     }
-
-    // public function walletPLshowByKode()
-    // {
-    //     $data = tr_ca::with(['tr_ca_transaction', 'tm_category_ca'])->where('kode_ca', request('kode_ca'))->first();
-    //     if (!$data) {
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => 'Data tidak ditemukan',
-    //             'data' => []
-    //         ]);
-    //     }
-    //     return response()->json([
-    //         'success' => true,
-    //         'data' => $data
-    //     ]);
-    // }
-
     public function showTransaksiByKode(Request $request, $kode_ca)
     {
         $ca = tr_ca::where('kode_ca', $kode_ca)->first();
@@ -84,16 +87,40 @@ class CashAdvanceController extends Controller
         }
 
         $perPage = $request->get('per_page', 10);
-        $transaksi = tr_ca_transaction::where('tr_ca_id', $ca->id)
+        $search = $request->get('search');
+
+        $query = tr_ca_transaction::where('tr_ca_id', $ca->id);
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('deskripsi', 'like', "%{$search}%")
+                    ->orWhere('kategori', 'like', "%{$search}%");
+            });
+        }
+
+        $transaksi = $query
             ->orderBy('tanggal', 'desc')
             ->paginate($perPage);
 
-        $transaksi->getCollection()->transform(function ($item) {
-            $item->bukti_url = $item->bukti
-                ? Storage::disk('s3')->url($item->bukti)
-                : null;
+        $transaksi->getCollection()->transform(function ($item) use ($ca) {
 
-            return $item;
+            return [
+                'dompet_id' => $item->tr_ca_id,
+                'kode_ca' => $ca->kode_ca,
+                'id_transaksi' => $item->id,
+                'tanggal' => $item->tanggal,
+                'jenis' => $item->jenis,
+                'deskripsi' => $item->deskripsi,
+                'kategori' => $item->kategori,
+                'jumlah' => (float) $item->jumlah,
+                'saldo_setelah' => (float) $item->saldo_setelah,
+                'bukti' => $item->bukti,
+                'bukti_url' => $item->bukti
+                    ? Storage::disk('s3')->url($item->bukti)
+                    : null,
+                'created_at' => $item->created_at,
+                'updated_at' => $item->updated_at,
+            ];
         });
 
         return response()->json([
@@ -247,19 +274,7 @@ class CashAdvanceController extends Controller
             ]);
         });
     }
-
-
-    // public function delete_ca($kode)
-    // {
-    //     $data = tr_ca::where('kode_ca', $kode)->delete();
-    //     return response()->json([
-    //         'success' => true,
-    //         'data' => $data
-    //     ]);
-    // }
-
-
-    public function caPL(Request $request)
+    public function walletPLRiwayatKegiatan(Request $request)
     {
         $userId = $request->user_id;
         $dataCategoryId = $request->data_category_id;
@@ -269,7 +284,7 @@ class CashAdvanceController extends Controller
 
 
         $query = tr_ca::with([
-            'trCA',
+            'tr_ca_transaction',
             'tm_category_ca'
         ])
             ->where('user_id', $userId);
@@ -391,6 +406,101 @@ class CashAdvanceController extends Controller
         ]);
     }
 
+    // update transakasi ca pl
+    public function updateTransaksiCaPl(Request $request, $kode_ca, $id)
+    {
+        $request->validate([
+            'kategori' => 'required',
+            'tanggal' => 'required|date',
+            'jenis' => 'required|in:penerimaan,pengeluaran',
+            'deskripsi' => 'nullable|string',
+            'jumlah' => 'required|numeric|min:1',
+            'bukti' => 'nullable|image|max:2048'
+        ]);
+
+        $ca = tr_ca::where('kode_ca', $kode_ca)->first();
+
+        if (!$ca) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data CA tidak ditemukan'
+            ], 404);
+        }
+
+        $transaksi = tr_ca_transaction::where('tr_ca_id', $ca->id)
+            ->find($id);
+
+        if (!$transaksi) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaksi tidak ditemukan'
+            ], 404);
+        }
+
+        if ($request->hasFile('bukti')) {
+
+            if ($transaksi->bukti) {
+                Storage::disk('s3')->delete($transaksi->bukti);
+            }
+
+            $transaksi->bukti = $request->file('bukti')
+                ->store('bukti-transaksi-capl', 's3');
+        }
+
+        $transaksi->tanggal = $request->tanggal;
+        $transaksi->kategori = $request->kategori;
+        $transaksi->jenis = $request->jenis;
+        $transaksi->deskripsi = $request->deskripsi;
+        $transaksi->jumlah = $request->jumlah;
+        $transaksi->save();
+
+        $this->recalculateSaldo($ca);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaksi berhasil diupdate',
+            'data' => $transaksi
+        ]);
+    }
+
+    // delete transaksi ca pl
+    public function deleteTransaksiCaPl($kode_ca, $id)
+    {
+        $ca = tr_ca::where('kode_ca', $kode_ca)->first();
+
+        if (!$ca) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data CA tidak ditemukan'
+            ], 404);
+        }
+
+        $transaksi = tr_ca_transaction::where('tr_ca_id', $ca->id)
+            ->find($id);
+
+        if (!$transaksi) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaksi tidak ditemukan'
+            ], 404);
+        }
+
+        if ($transaksi->bukti) {
+            Storage::disk('s3')->delete($transaksi->bukti);
+        }
+
+        $transaksi->delete();
+
+        $this->recalculateSaldo($ca);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaksi berhasil dihapus'
+        ]);
+    }
+
+
+
     public function walletPLPostTransaksi(Request $request, $kode_ca)
     {
         $request->validate([
@@ -470,84 +580,6 @@ class CashAdvanceController extends Controller
         ]);
     }
 
-    public function deleteTransaksiCaPl($id)
-    {
-        // Cari transaksi
-        $transaksi = tr_ca_transaction::find($id);
-
-        if (!$transaksi) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Transaksi tidak ditemukan'
-            ], 404);
-        }
-
-        // Ambil data CA
-        $ca = tr_ca::find($transaksi->tr_ca_id);
-
-        if (!$ca) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data CA tidak ditemukan'
-            ], 404);
-        }
-
-        $jumlah = (float) $transaksi->jumlah;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Kembalikan saldo berdasarkan jenis transaksi
-        |--------------------------------------------------------------------------
-        */
-
-        if ($transaksi->jenis == 'penerimaan') {
-
-            // rollback saldo penerimaan
-            $ca->saldo_akhir -= $jumlah;
-
-            // rollback total penerimaan
-            $ca->total_penerimaan -= $jumlah;
-
-        } else {
-
-            // rollback saldo pengeluaran
-            $ca->saldo_akhir += $jumlah;
-
-            // rollback total pengeluaran
-            $ca->total_pengeluaran -= $jumlah;
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Hapus file bukti jika ada
-        |--------------------------------------------------------------------------
-        */
-
-        if ($transaksi->bukti && Storage::disk('public')->exists($transaksi->bukti)) {
-            Storage::disk('public')->delete($transaksi->bukti);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Hapus transaksi
-        |--------------------------------------------------------------------------
-        */
-
-        $transaksi->delete();
-
-        /*
-        |--------------------------------------------------------------------------
-        | Simpan perubahan saldo
-        |--------------------------------------------------------------------------
-        */
-
-        $ca->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Transaksi berhasil dihapus'
-        ]);
-    }
 
     public function close_ca($kode_ca)
     {
@@ -858,7 +890,59 @@ class CashAdvanceController extends Controller
             $query->where('is_active', 1);
         }
 
+        // Query untuk Card Right
+
+        $queryRight = tr_ca::with([
+            'tr_ca_transaction',
+            'tm_category_ca'
+        ])
+            ->where('id_ca_category', 2)
+            ->where('user_id', $userId);
+        // $queryRight = tr_ca::where('id_ca_category', 2)
+        //     ->where('user_id', $userId);
+
+        if (!empty($tahunAnggaran)) {
+            $queryRight->where('tahun_anggaran', $tahunAnggaran);
+        }
+
+        if (!empty($status)) {
+            $queryRight->where('status', $status);
+        }
+
+        if ($request->has('is_active')) {
+            $queryRight->where('is_active', $isActive);
+        } else {
+            $queryRight->where('is_active', 1);
+        }
+
+
+
+        $dataRight = $queryRight->get();
+
         $data = $query->get();
+
+        $totalExpense = $data->sum('total_pengeluaran');
+
+        $kategoriPengeluaran = $data
+            ->flatMap(function ($ca) {
+                return $ca->tr_ca_transaction;
+            })
+            ->where('jenis', 'pengeluaran')
+            ->groupBy('kategori')
+            ->map(function ($transactions, $kategori) use ($totalExpense) {
+
+                $jumlah = $transactions->sum('jumlah');
+
+                return [
+                    'nama' => $kategori,
+                    'jumlah' => (float) $jumlah,
+                    'persentase' => $totalExpense > 0
+                        ? round(($jumlah / $totalExpense) * 100, 1)
+                        : 0,
+                ];
+            })
+            ->sortByDesc('jumlah')
+            ->values();
 
         if ($data->isEmpty()) {
             return response()->json([
@@ -889,7 +973,6 @@ class CashAdvanceController extends Controller
 
         foreach ($data as $item) {
 
-            // Ambil bulan dari tanggal mulai cash advance
             $month = Carbon::parse($item->tanggal_mulai)->month;
 
             $income[$month - 1] += (float) $item->total_penerimaan;
@@ -906,7 +989,20 @@ class CashAdvanceController extends Controller
                 'expense' => (float) $data->sum('total_pengeluaran'),
             ],
             'card_right' => [
-                ''
+                'jumlah_dompet' => $dataRight->count(),
+                'data' => $dataRight->map(function ($item) {
+                    return [
+                        'kode_ca' => $item->kode_ca,
+                        'judul_kegiatan' => $item->judul_kegiatan,
+                        'sisa_saldo' => (float) $item->saldo_akhir,
+                        'income' => (float) $item->total_penerimaan,
+                        'expense' => (float) $item->total_pengeluaran,
+                    ];
+                }),
+                'total_pengeluaran' => (float) $totalExpense,
+
+                'kategori_pengeluaran' => $kategoriPengeluaran,
+
             ],
 
             'chart' => [
@@ -930,18 +1026,18 @@ class CashAdvanceController extends Controller
 
     public function postTransaksiKegiatan(Request $request, $kode_ca)
     {
-        // Validasi
         $request->validate([
             'tanggal' => 'required|date',
             'jenis' => 'required|in:penerimaan,pengeluaran',
             'bukti' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'kategori' => 'required',
             'deskripsi' => 'nullable|string',
             'jumlah' => 'required|numeric|min:1'
         ]);
 
         $bukti = null;
         if ($request->hasFile('bukti')) {
-            $bukti = $request->file('bukti')->store('bukti-transaksi-kegiatan', 's3');
+            $bukti = $request->file('bukti')->store('bukti-transaksid-dompetkegiatan', 's3');
         }
 
 
@@ -1006,4 +1102,5 @@ class CashAdvanceController extends Controller
             ]
         ]);
     }
+
 }
