@@ -63,3 +63,4 @@ Route::get('/riwayat-wallet-kegiatan', [CashAdvanceController::class, 'walletPLR
 Route::post('/topup-wallet-kegiatan', [CashAdvanceController::class, 'topupWalletKegiatan']);
 Route::post('/kegiatan/{kode_ca}/transaksi', [CashAdvanceController::class, 'postTransaksiKegiatan']);
 Route::put('/kegiatan/{kode_ca}/transaksi/{id}', [CashAdvanceController::class, 'updateTransaksiKegiatan']);
+Route::delete('/kegiatan/{kode_ca}/transaksi/{id}', [CashAdvanceController::class, 'deleteTransaksiKegiatan']);

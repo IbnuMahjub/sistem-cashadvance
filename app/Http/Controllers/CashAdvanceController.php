@@ -710,7 +710,7 @@ class CashAdvanceController extends Controller
             'tanggal_selesai' => 'nullable',
             'total_pengeluaran' => 'nullable',
             'total_penerimaan' => 'required',
-            'bukti' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'bukti' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ], [
             'judul_kegiatan.required' => 'Judul Kegiatan harus diisi',
             'user_id.required' => 'User ID harus diisi',
@@ -745,6 +745,8 @@ class CashAdvanceController extends Controller
         $validated['saldo_akhir'] = $validated['total_penerimaan'];
         // $validated['is_active'] = 1;
         $validated['bukti'] = $bukti;
+
+        $validated['saldo_awal_priode'] = $validated['total_penerimaan'];
 
         $ca = tr_ca::create($validated);
 
@@ -1119,22 +1121,18 @@ class CashAdvanceController extends Controller
     }
 
 
+
+
     public function postTransaksiKegiatan(Request $request, $kode_ca)
     {
         $request->validate([
+            'kategori' => 'required',
             'tanggal' => 'required|date',
             'jenis' => 'required|in:penerimaan,pengeluaran',
             'bukti' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'kategori' => 'required',
             'deskripsi' => 'nullable|string',
-            'jumlah' => 'required|numeric|min:1'
+            'jumlah' => 'required|numeric|min:1',
         ]);
-
-        $bukti = null;
-        if ($request->hasFile('bukti')) {
-            $bukti = $request->file('bukti')->store('bukti-transaksi-dompetkegiatan', 's3');
-        }
-
 
         $ca = tr_ca::where('kode_ca', $kode_ca)->first();
 
@@ -1145,33 +1143,10 @@ class CashAdvanceController extends Controller
             ], 404);
         }
 
-        $jumlah = (float) $request->jumlah;
+        $bukti = null;
 
-        $saldoSebelum = $ca->saldo_akhir > 0
-            ? (float) $ca->saldo_akhir
-            : (float) $ca->total_penerimaan;
-
-
-
-        if ($request->jenis == 'penerimaan') {
-
-            $saldoSetelah = $saldoSebelum + $jumlah;
-
-            $ca->total_penerimaan += $jumlah;
-
-        } else {
-
-            // cek saldo cukup
-            if ($jumlah > $saldoSebelum) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Saldo tidak mencukupi'
-                ], 400);
-            }
-
-            $saldoSetelah = $saldoSebelum - $jumlah;
-
-            $ca->total_pengeluaran += $jumlah;
+        if ($request->hasFile('bukti')) {
+            $bukti = $request->file('bukti')->store('bukti-transaksi-kegiatan', 's3');
         }
 
         $transaksi = tr_ca_transaction::create([
@@ -1179,23 +1154,29 @@ class CashAdvanceController extends Controller
             'tanggal' => $request->tanggal,
             'jenis' => $request->jenis,
             'deskripsi' => $request->deskripsi,
-            'jumlah' => $jumlah,
+            'jumlah' => $request->jumlah,
             'kategori' => $request->kategori,
             'bukti' => $bukti,
-            'saldo_setelah' => $saldoSetelah,
+            'saldo_setelah' => 0,
         ]);
 
-        $ca->saldo_akhir = $saldoSetelah;
-        $ca->save();
+        // Hitung ulang semua saldo
+        if (!$this->recalculateSaldo($ca)) {
+
+            $transaksi->delete();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Saldo tidak mencukupi.'
+            ], 400);
+        }
+
+        $transaksi->refresh();
 
         return response()->json([
             'success' => true,
             'message' => 'Transaksi berhasil ditambahkan',
-            'data' => $transaksi,
-            'saldo' => [
-                'saldo_sebelum' => $saldoSebelum,
-                'saldo_setelah' => $saldoSetelah,
-            ]
+            'data' => $transaksi
         ]);
     }
 
@@ -1207,9 +1188,105 @@ class CashAdvanceController extends Controller
             'jenis' => 'required|in:penerimaan,pengeluaran',
             'deskripsi' => 'nullable|string',
             'jumlah' => 'required|numeric|min:1',
-            'bukti' => 'nullable|image|max:2048'
+            'bukti' => 'nullable|image|max:2048',
         ]);
 
+        DB::beginTransaction();
+
+        try {
+
+            $ca = tr_ca::where('kode_ca', $kode_ca)->first();
+
+            if (!$ca) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data CA tidak ditemukan'
+                ], 404);
+            }
+
+            $transaksi = tr_ca_transaction::where('tr_ca_id', $ca->id)
+                ->find($id);
+
+            if (!$transaksi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaksi tidak ditemukan'
+                ], 404);
+            }
+
+            // upload bukti baru
+            if ($request->hasFile('bukti')) {
+
+                if ($transaksi->bukti) {
+                    Storage::disk('s3')->delete($transaksi->bukti);
+                }
+
+                $transaksi->bukti = $request->file('bukti')
+                    ->store('bukti-transaksi-kegiatan', 's3');
+            }
+
+            $transaksi->tanggal = $request->tanggal;
+            $transaksi->kategori = $request->kategori;
+            $transaksi->jenis = $request->jenis;
+            $transaksi->deskripsi = $request->deskripsi;
+            $transaksi->jumlah = $request->jumlah;
+            $transaksi->save();
+
+            // ============================
+            // Hitung ulang semua transaksi
+            // ============================
+
+            $saldo = $ca->saldo_awal_priode;
+
+            $totalPenerimaan = 0;
+            $totalPengeluaran = 0;
+
+            $listTransaksi = tr_ca_transaction::where('tr_ca_id', $ca->id)
+                ->orderBy('tanggal')
+                ->orderBy('id')
+                ->get();
+
+            foreach ($listTransaksi as $trx) {
+
+                if ($trx->jenis == 'penerimaan') {
+                    $saldo += $trx->jumlah;
+                    $totalPenerimaan += $trx->jumlah;
+                } else {
+                    $saldo -= $trx->jumlah;
+                    $totalPengeluaran += $trx->jumlah;
+                }
+
+                $trx->saldo_setelah = $saldo;
+                $trx->save();
+            }
+
+            $ca->update([
+                'total_penerimaan' => $totalPenerimaan,
+                'total_pengeluaran' => $totalPengeluaran,
+                'saldo_akhir' => $saldo,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaksi berhasil diupdate',
+                'data' => $transaksi->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteTransaksiKegiatan($kode_ca, $id)
+    {
         $ca = tr_ca::where('kode_ca', $kode_ca)->first();
 
         if (!$ca) {
@@ -1229,29 +1306,17 @@ class CashAdvanceController extends Controller
             ], 404);
         }
 
-        if ($request->hasFile('bukti')) {
-
-            if ($transaksi->bukti) {
-                Storage::disk('s3')->delete($transaksi->bukti);
-            }
-
-            $transaksi->bukti = $request->file('bukti')
-                ->store('bukti-transaksi-dompetkegiatan', 's3');
+        if ($transaksi->bukti) {
+            Storage::disk('s3')->delete($transaksi->bukti);
         }
 
-        $transaksi->tanggal = $request->tanggal;
-        $transaksi->kategori = $request->kategori;
-        $transaksi->jenis = $request->jenis;
-        $transaksi->deskripsi = $request->deskripsi;
-        $transaksi->jumlah = $request->jumlah;
-        $transaksi->save();
+        $transaksi->delete();
 
         $this->recalculateSaldo($ca);
 
         return response()->json([
             'success' => true,
-            'message' => 'Transaksi berhasil diupdate',
-            'data' => $transaksi
+            'message' => 'Transaksi kegiatanberhasil dihapus'
         ]);
     }
 
