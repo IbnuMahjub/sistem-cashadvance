@@ -20,6 +20,7 @@ return new class extends Migration {
             $table->year('tahun_anggaran');
             $table->date('tanggal_mulai')->nullable();
             $table->date('tanggal_selesai')->nullable();
+            $table->decimal('saldo_awal_priode', 15, 2)->default(0);
             $table->decimal('total_penerimaan', 15, 2)->default(0);
             $table->decimal('total_pengeluaran', 15, 2)->default(0);
             $table->decimal('saldo_akhir', 15, 2)->default(0);

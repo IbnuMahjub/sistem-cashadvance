@@ -33,92 +33,65 @@ class DatabaseSeeder extends Seeder
             'name_category' => 'Dompet Kegiatan'
         ]);
 
-        // $ca = tr_ca::create([
+
+        // $data_ca = tr_ca::create([
+        //     'id' => 1,
         //     'id_ca_category' => 1,
-        //     'kode_ca' => 'CAPL-2025-001',
-        //     'user_id' => 1,
-        //     'username' => 'birly',
-        //     'judul_kegiatan' => 'Pengadaan Intelijen IMSI Catcher',
-        //     'tahun_anggaran' => 2025,
-        //     'tanggal_mulai' => '2025-10-29',
-        //     'tanggal_selesai' => '2026-01-21',
+        //     'kode_ca' => 'CA-2026-001',
+        //     'user_id' => 3,
+        //     'username' => 'ibnu mahjub',
+        //     'judul_kegiatan' => 'Dompet PL',
+        //     'tahun_anggaran' => 2026,
+        //     'tanggal_mulai' => '2026-06-26',
         //     'total_penerimaan' => 2000000,
-        //     'total_pengeluaran' => 2380830,
-        //     'saldo_akhir' => -380830,
-        //     'status' => 'approved'
-        // ]);
-        // $ca = tr_ca::create([
-        //     'id_ca_category' => 1,
-        //     'kode_ca' => 'CAPL-2024-001',
-        //     'user_id' => 1,
-        //     'username' => 'birly',
-        //     'judul_kegiatan' => 'Pengadaan Intelijen IMSI Catcher 2024',
-        //     'tahun_anggaran' => 2024,
-        //     'tanggal_mulai' => '2024-10-29',
-        //     'tanggal_selesai' => '2024-11-21',
-        //     'total_penerimaan' => 2000000,
-        //     'total_pengeluaran' => 2380830,
-        //     'saldo_akhir' => -380830,
-        //     'status' => 'approved'
+        //     'status' => 'approved',
+        //     'is_active' => 1
         // ]);
 
-        // // Saldo awal
-        // $saldo = 0;
 
-        // // 1️⃣ PENERIMAAN
-        // $saldo += 2000000;
-
-        // tr_ca_transaction::create([
-        //     'tr_ca_id' => $ca->id,
-        //     'tanggal' => '2025-10-29',
-        //     'jenis' => 'penerimaan',
-        //     'deskripsi' => 'Uang CA PL',
-        //     'jumlah' => 2000000,
-        //     'saldo_setelah' => $saldo,
-        // ]);
-
-        // // 2️⃣ PENGELUARAN
-        // $saldo -= 58830;
-
-        // tr_ca_transaction::create([
-        //     'tr_ca_id' => $ca->id,
-        //     'tanggal' => '2025-11-19',
+        // $data_ca_transaction = tr_ca_transaction::create([
+        //     'id' => 1,
+        //     'tr_ca_id' => 1,
+        //     'tanggal' => '2026-06-05',
         //     'jenis' => 'pengeluaran',
-        //     'deskripsi' => 'Konsumsi kopi bersama PPK',
-        //     'jumlah' => 58830,
-        //     'saldo_setelah' => $saldo,
+        //     'deskripsi' => 'Pulsa & paket data',
+        //     'bukti' => 'testing.png',
+        //     'kategori' => 'Komunikasi',
+        //     'jumlah' => 145000,
+        //     'saldo_setelah' => 1350000
         // ]);
-
-
-
-        // $ca = tr_ca::create([
-        //     'id_ca_category' => 2,
-        //     'kode_ca' => 'CAKEGIATAN-2025-002',
-        //     'user_id' => 1,
-        //     'username' => 'birly',
-        //     'judul_kegiatan' => 'Kunjungan Ke Gudang Barang Milik Negara (BMN) dan Pengadaan Intelijen IMSI Catcher',
-        //     'tahun_anggaran' => 2025,
-        //     'tanggal_mulai' => '2025-10-29',
-        //     'tanggal_selesai' => '2026-01-21',
-        //     'total_penerimaan' => 4000000,
-        //     'total_pengeluaran' => 3500000,
-        //     'saldo_akhir' => -500000,
-        //     'status' => 'draft'
+        // $data_ca_transaction = tr_ca_transaction::create([
+        //     'id' => 2,
+        //     'tr_ca_id' => 1,
+        //     'tanggal' => '2026-06-04',
+        //     'jenis' => 'pengeluaran',
+        //     'deskripsi' => 'Pembelian alat tulis',
+        //     'bukti' => 'testing2.png',
+        //     'kategori' => 'ATK',
+        //     'jumlah' => 75000,
+        //     'saldo_setelah' => 1495000
         // ]);
-
-        // $ca = tr_ca::create([
-        //     'id_ca_category' => 2,
-        //     'kode_ca' => 'CAPELATIHAN-2025-002',
-        //     'user_id' => 1,
-        //     'username' => 'birly',
-        //     'judul_kegiatan' => 'Kegiatan Pelatihan Intelijen IMSI Catcher',
-        //     'tahun_anggaran' => 2025,
-        //     'tanggal_mulai' => '2025-10-29',
-        //     'tanggal_selesai' => '2026-01-21',
-        //     'total_penerimaan' => 4000000,
-        //     'total_pengeluaran' => 3500000,
-        //     'saldo_akhir' => -500000,
-        //     'status' => 'draft'
+        // $data_ca_transaction = tr_ca_transaction::create([
+        //     'id' => 3,
+        //     'tr_ca_id' => 1,
+        //     'tanggal' => '2026-06-03',
+        //     'jenis' => 'pengeluaran',
+        //     'deskripsi' => 'Konsumsi rapat koordinasi',
+        //     'bukti' => 'testing3.png',
+        //     'kategori' => 'Konsumsi',
+        //     'jumlah' => 180000,
+        //     'saldo_setelah' => 1570000
+        // ]);
+        // $data_ca_transaction = tr_ca_transaction::create([
+        //     'id' => 4,
+        //     'tr_ca_id' => 1,
+        //     'tanggal' => '2026-06-02',
+        //     'jenis' => 'pengeluaran',
+        //     'deskripsi' => 'Taksi ke lokasi proyek',
+        //     'bukti' => 'testing4.png',
+        //     'kategori' => 'Konsumsi',
+        //     'jumlah' => 250000,
+        //     'saldo_setelah' => 1750000
         // ]);
 
     }
