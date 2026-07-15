@@ -149,6 +149,112 @@ class CashAdvanceController extends Controller
             ]
         ]);
     }
+    public function showTransaksiKegiatanByKode(Request $request, $kode_ca)
+    {
+        $ca = tr_ca::where('kode_ca', $kode_ca)->first();
+
+        if (!$ca) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data tidak ditemukan'
+            ], 404);
+        }
+
+        $perPage = $request->get('per_page', 10);
+        $search = $request->get('search');
+
+        $query = tr_ca_transaction::where('tr_ca_id', $ca->id);
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('deskripsi', 'like', "%{$search}%")
+                    ->orWhere('kategori', 'like', "%{$search}%");
+            });
+        }
+
+        $transaksi = $query
+            ->orderBy('tanggal', 'desc')
+            ->paginate($perPage);
+
+        $transaksi->getCollection()->transform(function ($item) use ($ca) {
+
+            return [
+                'dompet_id' => $item->tr_ca_id,
+                'kode_ca' => $ca->kode_ca,
+                'id_transaksi' => $item->id,
+                'tanggal' => $item->tanggal,
+                'jenis' => $item->jenis,
+                'deskripsi' => $item->deskripsi,
+                'kategori' => $item->kategori,
+                'jumlah' => (float) $item->jumlah,
+                'saldo_setelah' => (float) $item->saldo_setelah,
+                'bukti' => $item->bukti,
+                'bukti_url' => $item->bukti
+                    ? Storage::disk('s3')->url($item->bukti)
+                    : null,
+                'created_at' => $item->created_at,
+                'updated_at' => $item->updated_at,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $transaksi->items(),
+            'pagination' => [
+                'current_page' => $transaksi->currentPage(),
+                'last_page' => $transaksi->lastPage(),
+                'per_page' => $transaksi->perPage(),
+                'total' => $transaksi->total(),
+                'from' => $transaksi->firstItem(),
+                'to' => $transaksi->lastItem(),
+            ]
+        ]);
+    }
+
+    public function closeKegiatan(Request $request)
+    {
+        $validated = $request->validate([
+            'id' => 'required|exists:tr_ca,id',
+            'bukti_setor' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+
+            $ca = tr_ca::findOrFail($validated['id']);
+
+            $buktiSetor = $ca->bukti_setor;
+
+            if ($request->hasFile('bukti_setor')) {
+                $buktiSetor = $request->file('bukti_setor')
+                    ->store('bukti-setor', 's3');
+            }
+
+            $ca->update([
+                'status' => 'closing',
+                'is_active' => 0,
+                'bukti_setor' => $buktiSetor,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cash Advance berhasil ditutup.',
+                'data' => $ca->fresh(),
+            ]);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
 
     public function post_ca(Request $request)
@@ -1092,8 +1198,8 @@ class CashAdvanceController extends Controller
                         'kode_ca' => $item->kode_ca,
                         'judul_kegiatan' => $item->judul_kegiatan,
                         'sisa_saldo' => (float) $item->saldo_akhir,
-                        'income' => (float) $item->total_penerimaan,
-                        'expense' => (float) $item->total_pengeluaran,
+                        // 'income' => (float) $item->total_penerimaan,
+                        // 'expense' => (float) $item->total_pengeluaran,
                     ];
                 }),
                 'total_pengeluaran' => (float) $totalExpense,
