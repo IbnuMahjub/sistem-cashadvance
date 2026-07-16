@@ -226,9 +226,22 @@ class CashAdvanceController extends Controller
 
             $buktiSetor = $ca->bukti_setor;
 
+            // if ($request->hasFile('bukti_setor')) {
+            //     $buktiSetor = $request->file('bukti_setor')
+            //         ->store('bukti-setor', 's3');
+            // }
             if ($request->hasFile('bukti_setor')) {
-                $buktiSetor = $request->file('bukti_setor')
-                    ->store('bukti-setor', 's3');
+
+                // hapus file lama jika ada
+                if ($ca->bukti_setor && Storage::disk('s3')->exists($ca->bukti_setor)) {
+                    Storage::disk('s3')->delete($ca->bukti_setor);
+                }
+
+                $tahun = date('Y'); // atau Carbon::parse($ca->tanggal_mulai)->year
+
+                $folder = "bukti-transaksi-kegiatan/{$tahun}/{$ca->kode_ca}-{$ca->user_id}/setorbukti";
+
+                $buktiSetor = $request->file('bukti_setor')->store($folder, 's3');
             }
 
             $ca->update([
@@ -468,7 +481,12 @@ class CashAdvanceController extends Controller
         $bukti = null;
 
         if ($request->hasFile('bukti')) {
-            $bukti = $request->file('bukti')->store('bukti-transaksi-capl', 's3');
+            // $bukti = $request->file('bukti')->store('bukti-transaksi-capl', 's3');
+            $tahun = date('Y'); // atau Carbon::parse($request->tanggal)->year
+
+            $folder = "bukti-transaksi-capl/{$tahun}/{$ca->kode_ca}-{$ca->user_id}";
+
+            $bukti = $request->file('bukti')->store($folder, 's3');
         }
 
         $transaksi = tr_ca_transaction::create([
@@ -501,62 +519,6 @@ class CashAdvanceController extends Controller
             'data' => $transaksi
         ]);
     }
-
-    // update transakasi ca pl
-    // public function updateTransaksiCaPl(Request $request, $kode_ca, $id)
-    // {
-    //     $request->validate([
-    //         'kategori' => 'required',
-    //         'tanggal' => 'required|date',
-    //         'jenis' => 'required|in:penerimaan,pengeluaran',
-    //         'deskripsi' => 'nullable|string',
-    //         'jumlah' => 'required|numeric|min:1',
-    //         'bukti' => 'nullable|image|max:2048',
-    //     ]);
-
-    //     $ca = tr_ca::where('kode_ca', $kode_ca)->first();
-
-    //     if (!$ca) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Data CA tidak ditemukan'
-    //         ], 404);
-    //     }
-
-    //     $transaksi = tr_ca_transaction::where('tr_ca_id', $ca->id)
-    //         ->find($id);
-
-    //     if (!$transaksi) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Transaksi tidak ditemukan'
-    //         ], 404);
-    //     }
-
-    //     if ($request->hasFile('bukti')) {
-
-    //         if ($transaksi->bukti) {
-    //             Storage::disk('s3')->delete($transaksi->bukti);
-    //         }
-
-    //         $transaksi->bukti = $request->file('bukti')
-    //             ->store('bukti-transaksi-capl', 's3');
-    //     }
-
-    //     $transaksi->tanggal = $request->tanggal;
-    //     $transaksi->kategori = $request->kategori;
-    //     $transaksi->jenis = $request->jenis;
-    //     $transaksi->deskripsi = $request->deskripsi;
-    //     $transaksi->jumlah = $request->jumlah;
-    //     $transaksi->save();
-
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Transaksi berhasil diupdate',
-    //         'data' => $transaksi
-    //     ]);
-    // }
 
     public function updateTransaksiCaPl(Request $request, $kode_ca, $id)
     {
@@ -592,6 +554,17 @@ class CashAdvanceController extends Controller
                 ], 404);
             }
 
+            // // upload bukti baru
+            // if ($request->hasFile('bukti')) {
+
+            //     if ($transaksi->bukti) {
+            //         Storage::disk('s3')->delete($transaksi->bukti);
+            //     }
+
+            //     $transaksi->bukti = $request->file('bukti')
+            //         ->store('bukti-transaksi-capl', 's3');
+            // }
+
             // upload bukti baru
             if ($request->hasFile('bukti')) {
 
@@ -599,8 +572,11 @@ class CashAdvanceController extends Controller
                     Storage::disk('s3')->delete($transaksi->bukti);
                 }
 
-                $transaksi->bukti = $request->file('bukti')
-                    ->store('bukti-transaksi-capl', 's3');
+                $tahun = date('Y'); // atau Carbon::parse($request->tanggal)->year
+
+                $folder = "bukti-transaksi-capl/{$tahun}/{$ca->kode_ca}-{$ca->user_id}";
+
+                $transaksi->bukti = $request->file('bukti')->store($folder, 's3');
             }
 
             $transaksi->tanggal = $request->tanggal;
@@ -685,9 +661,13 @@ class CashAdvanceController extends Controller
             ], 404);
         }
 
-        if ($transaksi->bukti) {
+        // if ($transaksi->bukti) {
+        //     Storage::disk('s3')->delete($transaksi->bukti);
+        // }
+        if ($transaksi->bukti && Storage::disk('s3')->exists($transaksi->bukti)) {
             Storage::disk('s3')->delete($transaksi->bukti);
         }
+
 
         $transaksi->delete();
 
@@ -843,7 +823,8 @@ class CashAdvanceController extends Controller
             $nomor = 1;
         }
 
-        $kode = 'CA' . $tahun . str_pad($nomor, 4, '0', STR_PAD_LEFT);
+        $kode = 'CA-' . $tahun . '-' . str_pad($nomor, 4, '0', STR_PAD_LEFT);
+        // $kode = 'CA' . $tahun . str_pad($nomor, 4, '0', STR_PAD_LEFT);
         $validated['kode_ca'] = $kode;
         $validated['kode_ca'] = $kode;
         // $validated['judul_kegiatan'] = 'Dompet Kegiatan';
@@ -1186,6 +1167,7 @@ class CashAdvanceController extends Controller
             'status' => 'success',
 
             'card_left' => [
+                'id_ca_wallet_pl' => $data->first()->id,
                 'kode_ca' => $data->first()->kode_ca,
                 'sisa_saldo' => (float) $data->sum('saldo_akhir'),
                 'income' => (float) $data->sum('saldo_awal_priode'),
@@ -1195,6 +1177,7 @@ class CashAdvanceController extends Controller
                 'jumlah_dompet' => $dataRight->count(),
                 'data' => $dataRight->map(function ($item) {
                     return [
+                        'id_ca_kegiatan' => $item->id,
                         'kode_ca' => $item->kode_ca,
                         'judul_kegiatan' => $item->judul_kegiatan,
                         'sisa_saldo' => (float) $item->saldo_akhir,
@@ -1249,10 +1232,20 @@ class CashAdvanceController extends Controller
             ], 404);
         }
 
+        // $bukti = null;
+
+        // if ($request->hasFile('bukti')) {
+        //     $bukti = $request->file('bukti')->store('bukti-transaksi-kegiatan', 's3');
+        // }
         $bukti = null;
 
         if ($request->hasFile('bukti')) {
-            $bukti = $request->file('bukti')->store('bukti-transaksi-kegiatan', 's3');
+            // $bukti = $request->file('bukti')->store('bukti-transaksi-capl', 's3');
+            $tahun = date('Y'); // atau Carbon::parse($request->tanggal)->year
+
+            $folder = "bukti-transaksi-kegiatan/{$tahun}/{$ca->kode_ca}-{$ca->user_id}";
+
+            $bukti = $request->file('bukti')->store($folder, 's3');
         }
 
         $transaksi = tr_ca_transaction::create([
@@ -1327,8 +1320,11 @@ class CashAdvanceController extends Controller
                     Storage::disk('s3')->delete($transaksi->bukti);
                 }
 
-                $transaksi->bukti = $request->file('bukti')
-                    ->store('bukti-transaksi-kegiatan', 's3');
+                $tahun = date('Y'); // atau Carbon::parse($request->tanggal)->year
+
+                $folder = "bukti-transaksi-kegiatan/{$tahun}/{$ca->kode_ca}-{$ca->user_id}";
+
+                $transaksi->bukti = $request->file('bukti')->store($folder, 's3');
             }
 
             $transaksi->tanggal = $request->tanggal;
@@ -1412,7 +1408,11 @@ class CashAdvanceController extends Controller
             ], 404);
         }
 
-        if ($transaksi->bukti) {
+        // if ($transaksi->bukti) {
+        //     Storage::disk('s3')->delete($transaksi->bukti);
+        // }
+
+        if ($transaksi->bukti && Storage::disk('s3')->exists($transaksi->bukti)) {
             Storage::disk('s3')->delete($transaksi->bukti);
         }
 
