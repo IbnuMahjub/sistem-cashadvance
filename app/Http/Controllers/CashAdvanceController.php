@@ -451,7 +451,7 @@ class CashAdvanceController extends Controller
             'kategori' => 'required',
             'tanggal' => 'required|date',
             'jenis' => 'required|in:penerimaan,pengeluaran',
-            'bukti' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'bukti' => 'nullable|file|mimes:jpeg,jpg,png,gif,pdf|max:2048',
             'deskripsi' => 'nullable|string',
             'jumlah' => 'required|numeric|min:1',
         ]);
@@ -566,7 +566,7 @@ class CashAdvanceController extends Controller
             'jenis' => 'required|in:penerimaan,pengeluaran',
             'deskripsi' => 'nullable|string',
             'jumlah' => 'required|numeric|min:1',
-            'bukti' => 'nullable|image|max:2048',
+            'bukti' => 'nullable|file|mimes:jpeg,jpg,png,gif,pdf|max:2048',
         ]);
 
         DB::beginTransaction();
@@ -1235,7 +1235,7 @@ class CashAdvanceController extends Controller
             'kategori' => 'required',
             'tanggal' => 'required|date',
             'jenis' => 'required|in:penerimaan,pengeluaran',
-            'bukti' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'bukti' => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf|max:2048',
             'deskripsi' => 'nullable|string',
             'jumlah' => 'required|numeric|min:1',
         ]);
@@ -1294,7 +1294,7 @@ class CashAdvanceController extends Controller
             'jenis' => 'required|in:penerimaan,pengeluaran',
             'deskripsi' => 'nullable|string',
             'jumlah' => 'required|numeric|min:1',
-            'bukti' => 'nullable|image|max:2048',
+            'bukti' => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf|max:2048',
         ]);
 
         DB::beginTransaction();
