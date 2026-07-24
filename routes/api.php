@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\CashAdvanceController;
+use App\Http\Controllers\DompetKegiatanController;
+use App\Http\Controllers\DompetPLController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OCRController;
@@ -40,29 +42,42 @@ Route::post('/ocr/scan-struk', [OCRController::class, 'scan']);
 
 Route::get('/wallet-pl', [CashAdvanceController::class, 'walletPL']);
 Route::get('/table-wallet-pl', [CashAdvanceController::class, 'tableWalletPL']);
-// Route::get('/wallet-pl-riwayat', [CashAdvanceController::class, 'walletPLRiwayat']);
-
-// Route::get('/wallet-pl/{kode_ca}', [CashAdvanceController::class, 'walletPLshowByKode']);
-Route::post('/wallet-pl/{kode_ca}/transaksi', [CashAdvanceController::class, 'walletPLPostTransaksi']);
 
 
-Route::post('/topup-wallet-pl', [CashAdvanceController::class, 'topupWalletPL']);
-Route::post('/esekusi-topup-wallet-pl', [CashAdvanceController::class, 'esekusiTopupWalletPL']);
+
+// Route::post('/wallet-pl/{kode_ca}/transaksi', [CashAdvanceController::class, 'walletPLPostTransaksi']);
+
+// route  dompet pl
+Route::post('/topup-wallet-pl', [DompetPLController::class, 'topupWalletPL']);
+
+
+
+Route::post('/esekusi-topup-wallet-pl', [DompetPLController::class, 'esekusiTopupWalletPL']);
 
 // route table transaksi wallet pl
-Route::get('/transaksi-wallet-pl/{kode_ca}', [CashAdvanceController::class, 'showTransaksiByKode']);
+Route::get('/transaksi-wallet-pl/{kode_ca}', [DompetPLController::class, 'showTransaksiByKode']);
 // route  transaksi wallet pl
-Route::post('/ca/{kode_ca}/transaksi', [CashAdvanceController::class, 'postTransaksiCaPl']);
-Route::put('/ca/{kode_ca}/transaksi/{id}', [CashAdvanceController::class, 'updateTransaksiCaPl']);
-Route::delete('/ca/{kode_ca}/transaksi/{id}', [CashAdvanceController::class, 'deleteTransaksiCaPl']);
+Route::post('/ca/{kode_ca}/transaksi', [DompetPLController::class, 'postTransaksiCaPl']);
+Route::put('/ca/{kode_ca}/transaksi/{id}', [DompetPLController::class, 'updateTransaksiCaPl']);
+Route::delete('/ca/{kode_ca}/transaksi/{id}', [DompetPLController::class, 'deleteTransaksiCaPl']);
+Route::get('/riwayat-wallet-pl', [DompetPLController::class, 'riwayatWalletPL']);
+Route::get('/laporan-wallet-pl/{id}', [DompetPLController::class, 'laporanWalletPL']);
+Route::get('/detail-wallet-pl/{kode_ca}', [DompetPLController::class, 'detailWalletPL']);
+Route::get('/list-wallet-pl', [DompetPLController::class, 'listWalletPL']);
+Route::get('/wallet-pl/{kode_ca}', [DompetPLController::class, 'showWalletPlByKode']);
 
 Route::get('/cashadvance', [CashAdvanceController::class, 'cashadvance']);
 
 
-Route::get('/riwayat-wallet-kegiatan', [CashAdvanceController::class, 'walletPLRiwayatKegiatan']);
-Route::post('/topup-wallet-kegiatan', [CashAdvanceController::class, 'topupWalletKegiatan']);
-Route::post('/kegiatan/{kode_ca}/transaksi', [CashAdvanceController::class, 'postTransaksiKegiatan']);
-Route::post('/close-kegiatan', [CashAdvanceController::class, 'closeKegiatan']);
-Route::put('/kegiatan/{kode_ca}/transaksi/{id}', [CashAdvanceController::class, 'updateTransaksiKegiatan']);
-Route::delete('/kegiatan/{kode_ca}/transaksi/{id}', [CashAdvanceController::class, 'deleteTransaksiKegiatan']);
-Route::get('/transaksi-wallet-kegiatan/{kode_ca}', [CashAdvanceController::class, 'showTransaksiKegiatanByKode']);
+// route dompet kegiatan
+Route::get('/riwayat-wallet-kegiatan', [DompetKegiatanController::class, 'walletPLRiwayatKegiatan']);
+Route::post('/topup-wallet-kegiatan', [DompetKegiatanController::class, 'topupWalletKegiatan']);
+Route::post('/kegiatan/{kode_ca}/transaksi', [DompetKegiatanController::class, 'postTransaksiKegiatan']);
+Route::post('/close-kegiatan', [DompetKegiatanController::class, 'closeKegiatan']);
+Route::put('/kegiatan/{kode_ca}/transaksi/{id}', [DompetKegiatanController::class, 'updateTransaksiKegiatan']);
+Route::delete('/kegiatan/{kode_ca}/transaksi/{id}', [DompetKegiatanController::class, 'deleteTransaksiKegiatan']);
+Route::get('/transaksi-wallet-kegiatan/{kode_ca}', [DompetKegiatanController::class, 'showTransaksiKegiatanByKode']);
+Route::get('/list-wallet-kegiatan', [DompetKegiatanController::class, 'listWalletKegiatan']);
+Route::get('/wallet-kegiatan/{kode_ca}', [DompetKegiatanController::class, 'showWalletKegiatanByKode']);
+
+Route::get('/all-riwayat-wallet', [CashAdvanceController::class, 'allRiwayatWallet']);
