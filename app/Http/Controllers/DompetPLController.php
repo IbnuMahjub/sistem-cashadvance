@@ -597,18 +597,42 @@ class DompetPLController extends Controller
 
     public function showWalletPlByKode(Request $request, $kode_ca)
     {
-        $ca = tr_ca::where('kode_ca', $kode_ca)->first();
+        $search = $request->search;
 
-        if (!$ca) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data tidak ditemukan'
-            ], 404);
+        $query = tr_ca::query()
+            ->with('tm_category_ca')
+            ->where('kode_ca', $kode_ca);
+
+        if ($request->boolean('tr_ca_transaction')) {
+            $query->with([
+                'tr_ca_transaction' => function ($q) use ($search) {
+                    if (!empty($search)) {
+                        $q->where(function ($query) use ($search) {
+                            $query->where('deskripsi', 'like', "%{$search}%")
+                                ->orWhere('jenis', 'like', "%{$search}%")
+                                ->orWhere('kategori', 'like', "%{$search}%");
+                        });
+                    }
+                }
+            ]);
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => $ca
-        ]);
+        $ca = $query->first();
+
+        if (!$ca) {
+            return sendResponse(
+                'error',
+                null,
+                null,
+                'Data tidak ditemukan'
+            );
+        }
+
+        return sendResponse(
+            'success',
+            $ca,
+            null,
+            'Data berhasil diambil'
+        );
     }
 }
