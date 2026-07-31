@@ -141,7 +141,7 @@ class DompetPLController extends Controller
             'total_pengeluaran' => 'nullable|numeric|min:0',
 
             // Bukti setor untuk CA LAMA
-            'bukti_setor' => 'required|file|mimes:jpeg,jpg,png,gif,pdf|max:2048',
+            'bukti_setor' => 'nullable|file|mimes:jpeg,jpg,png,gif,pdf|max:2048',
         ]);
 
         DB::beginTransaction();
