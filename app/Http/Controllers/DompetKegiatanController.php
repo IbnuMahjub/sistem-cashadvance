@@ -25,17 +25,15 @@ class DompetKegiatanController extends Controller
 
         foreach ($transaksi as $item) {
 
-            if ($item->jenis == 'penerimaan') {
+            if ($item->jenis === 'penerimaan') {
 
                 $saldo += $item->jumlah;
                 $totalPenerimaan += $item->jumlah;
 
             } else {
 
-                if ($saldo < $item->jumlah) {
-                    return false;
-                }
-
+                // Tidak ada pengecekan saldo lagi.
+                // Jadi saldo boleh menjadi minus.
                 $saldo -= $item->jumlah;
                 $totalPengeluaran += $item->jumlah;
             }

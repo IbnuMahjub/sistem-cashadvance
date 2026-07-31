@@ -26,17 +26,14 @@ class DompetPLController extends Controller
 
         foreach ($transaksi as $item) {
 
-            if ($item->jenis == 'penerimaan') {
+            if ($item->jenis === 'penerimaan') {
 
                 $saldo += $item->jumlah;
                 $totalPenerimaan += $item->jumlah;
 
             } else {
 
-                if ($saldo < $item->jumlah) {
-                    return false;
-                }
-
+                // Saldo boleh menjadi minus
                 $saldo -= $item->jumlah;
                 $totalPengeluaran += $item->jumlah;
             }
@@ -57,7 +54,7 @@ class DompetPLController extends Controller
     {
         $tahun = $validated['tahun_anggaran'];
 
-        $validated['total_penerimaan'] = 2000000;
+        // $validated['total_penerimaan'] = 2000000;
         $validated['id_ca_category'] = 1;
 
         $last = tr_ca::where('tahun_anggaran', $tahun)
@@ -84,7 +81,8 @@ class DompetPLController extends Controller
             'tahun_anggaran' => 'required',
             'tanggal_mulai' => 'required',
             'tanggal_selesai' => 'nullable',
-            'total_pengeluaran' => 'nullable',
+            'total_penerimaan' => 'required|numeric|min:0',
+            'total_pengeluaran' => 'nullable|numeric|min:0',
         ]);
 
         DB::beginTransaction();
