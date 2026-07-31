@@ -591,6 +591,8 @@ class DompetPLController extends Controller
                     'saldo_akhir' => $item->saldo_akhir,
                     'tanggal_mulai' => $item->tanggal_mulai,
                     'tanggal_selesai' => $item->tanggal_selesai,
+                    'bukti' => $item->bukti_setor,
+                    'bukti_url' => $item->bukti_setor ? Storage::disk('s3')->url($item->bukti_setor) : null,
                     'laporan' => env('APP_URL') . '/api/laporan-wallet-pl/' . $item->id
                 ];
             })
