@@ -73,49 +73,146 @@ class DompetPLController extends Controller
 
         return tr_ca::create($validated);
     }
+    // public function esekusiTopupWalletPL(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'user_id' => 'required',
+    //         'username' => 'required',
+    //         'tahun_anggaran' => 'required',
+    //         'tanggal_mulai' => 'required',
+    //         'tanggal_selesai' => 'nullable',
+    //         'total_penerimaan' => 'required|numeric|min:0',
+    //         'total_pengeluaran' => 'nullable|numeric|min:0',
+    //     ]);
+
+    //     DB::beginTransaction();
+
+    //     try {
+
+    //         // Cari wallet aktif user
+    //         $wallet = tr_ca::where('user_id', $validated['user_id'])
+    //             ->where('id_ca_category', 1)
+    //             ->where('status', 'approved')
+    //             ->latest('id')
+    //             ->first();
+
+    //         // Kalau ada, tutup wallet lama
+    //         if ($wallet) {
+    //             $wallet->update([
+    //                 'status' => 'closing',
+    //                 'is_active' => 0,
+    //                 // 'tanggal_selesai' => now(),
+    //             ]);
+    //         }
+
+    //         // Buat wallet baru
+    //         $newWallet = $this->createTopupWalletPL($validated);
+
+    //         DB::commit();
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => $wallet
+    //                 ? 'Wallet lama berhasil ditutup dan wallet baru dibuat.'
+    //                 : 'Wallet pertama berhasil dibuat.',
+    //             'data' => $newWallet
+    //         ]);
+
+    //     } catch (\Exception $e) {
+
+    //         DB::rollBack();
+
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
     public function esekusiTopupWalletPL(Request $request)
     {
         $validated = $request->validate([
             'user_id' => 'required',
             'username' => 'required',
             'tahun_anggaran' => 'required',
-            'tanggal_mulai' => 'required',
-            'tanggal_selesai' => 'nullable',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'nullable|date',
             'total_penerimaan' => 'required|numeric|min:0',
             'total_pengeluaran' => 'nullable|numeric|min:0',
+
+            // Bukti setor untuk CA LAMA
+            'bukti_setor' => 'required|file|mimes:jpeg,jpg,png,gif,pdf|max:2048',
         ]);
 
         DB::beginTransaction();
 
         try {
 
-            // Cari wallet aktif user
+            // ==========================================
+            // 1. Cari CA / Wallet LAMA
+            // ==========================================
             $wallet = tr_ca::where('user_id', $validated['user_id'])
                 ->where('id_ca_category', 1)
                 ->where('status', 'approved')
+                ->where('is_active', 1)
                 ->latest('id')
                 ->first();
 
-            // Kalau ada, tutup wallet lama
+
+            // ==========================================
+            // 2. Kalau CA lama ada
+            // ==========================================
             if ($wallet) {
+
+                // Hapus bukti setor lama jika ada
+                if (
+                    $wallet->bukti_setor &&
+                    Storage::disk('s3')->exists($wallet->bukti_setor)
+                ) {
+                    Storage::disk('s3')->delete($wallet->bukti_setor);
+                }
+
+                // Tahun berdasarkan CA LAMA
+                $tahun = $wallet->tahun_anggaran;
+
+                // Kode CA berdasarkan CA LAMA
+                $folder = "bukti-transaksi-kegiatan/{$tahun}/{$wallet->kode_ca}-{$wallet->user_id}/setorbukti";
+
+                // Upload bukti setor
+                $buktiSetor = $request->file('bukti_setor')
+                    ->store($folder, 's3');
+
+                // ==========================================
+                // 3. Update CA LAMA
+                // ==========================================
                 $wallet->update([
+                    'bukti_setor' => $buktiSetor,
                     'status' => 'closing',
                     'is_active' => 0,
-                    // 'tanggal_selesai' => now(),
                 ]);
             }
 
-            // Buat wallet baru
+            // Jangan ikutkan file ke create CA baru
+            unset($validated['bukti_setor']);
+
+
+            // ==========================================
+            // 4. BARU buat CA / Wallet BARU
+            // ==========================================
             $newWallet = $this->createTopupWalletPL($validated);
+
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => $wallet
-                    ? 'Wallet lama berhasil ditutup dan wallet baru dibuat.'
+                    ? 'Bukti setor CA lama berhasil disimpan dan wallet baru berhasil dibuat.'
                     : 'Wallet pertama berhasil dibuat.',
-                'data' => $newWallet
+                'data' => [
+                    'wallet_lama' => $wallet?->fresh(),
+                    'wallet_baru' => $newWallet,
+                ]
             ]);
 
         } catch (\Exception $e) {
