@@ -187,6 +187,7 @@ class DompetPLController extends Controller
                 // ==========================================
                 $wallet->update([
                     'bukti_setor' => $buktiSetor,
+                    'tanggal_selesai' => now(),
                     'status' => 'closing',
                     'is_active' => 0,
                 ]);
@@ -588,6 +589,8 @@ class DompetPLController extends Controller
                     'status' => $item->status,
                     'total_pengeluaran' => $item->total_pengeluaran,
                     'saldo_akhir' => $item->saldo_akhir,
+                    'tanggal_mulai' => $item->tanggal_mulai,
+                    'tanggal_selesai' => $item->tanggal_selesai,
                     'laporan' => env('APP_URL') . '/api/laporan-wallet-pl/' . $item->id
                 ];
             })

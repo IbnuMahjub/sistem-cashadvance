@@ -116,7 +116,7 @@ class DompetKegiatanController extends Controller
             'tanggal_selesai' => 'nullable',
             'total_pengeluaran' => 'nullable',
             'total_penerimaan' => 'required',
-            'bukti' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'bukti' => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf|max:2048',
         ], [
             'judul_kegiatan.required' => 'Judul Kegiatan harus diisi',
             'user_id.required' => 'User ID harus diisi',
@@ -266,6 +266,7 @@ class DompetKegiatanController extends Controller
 
             $ca->update([
                 'status' => 'closing',
+                'tanggal_selesai' => now(),
                 'is_active' => 0,
                 'bukti_setor' => $buktiSetor,
             ]);
