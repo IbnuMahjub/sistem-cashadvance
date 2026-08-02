@@ -708,22 +708,22 @@ class CashAdvanceController extends Controller
 
     public function getCollaborators(Request $request)
     {
-        $trCaId = $request->tr_ca_id;
+        $dompetId = $request->dompet_id;
 
         $query = tr_ca_collaborator::query()
             ->select([
                 'id',
-                'tr_ca_id',
+                'tr_ca_id as dompet_id',
                 'user_id',
                 'username',
                 'role',
             ]);
 
-        // Jika tr_ca_id dikirim, filter berdasarkan tr_ca_id
-        if (!empty($trCaId)) {
+        // Jika dompet_id dikirim, filter berdasarkan dompet
+        if (!empty($dompetId)) {
 
-            // Pastikan CA ada dan merupakan Dompet Kegiatan
-            $caExists = tr_ca::where('id', $trCaId)
+            // Pastikan Dompet Kegiatan ada
+            $caExists = tr_ca::where('id', $dompetId)
                 ->where('id_ca_category', 2)
                 ->exists();
 
@@ -736,7 +736,7 @@ class CashAdvanceController extends Controller
                 );
             }
 
-            $query->where('tr_ca_id', $trCaId);
+            $query->where('tr_ca_id', $dompetId);
         }
 
         $collaborators = $query
@@ -753,12 +753,12 @@ class CashAdvanceController extends Controller
     public function addCollaborator(Request $request)
     {
         $request->validate([
-            'tr_ca_id' => 'required|integer',
+            'dompet_id' => 'required|integer',
             'user_id' => 'required|integer',
             'username' => 'required|string',
         ]);
 
-        $ca = tr_ca::where('id', $request->tr_ca_id)
+        $ca = tr_ca::where('id', $request->dompet_id)
             ->where('id_ca_category', 2)
             ->first();
 
@@ -791,9 +791,19 @@ class CashAdvanceController extends Controller
             'role' => 'collaborator',
         ]);
 
+        $data = [
+            'id' => $collaborator->id,
+            'dompet_id' => $collaborator->tr_ca_id,
+            'user_id' => $collaborator->user_id,
+            'username' => $collaborator->username,
+            'role' => $collaborator->role,
+            'created_at' => $collaborator->created_at,
+            'updated_at' => $collaborator->updated_at,
+        ];
+
         return sendResponse(
             'success',
-            $collaborator,
+            $data,
             null,
             'Collaborator berhasil ditambahkan'
         );
@@ -802,11 +812,13 @@ class CashAdvanceController extends Controller
     public function updateCollaborator(Request $request, $id)
     {
         $request->validate([
-            'user_id' => 'required|string',
+            'dompet_id' => 'required|integer',
+            'user_id' => 'required|integer',
             'username' => 'required|string',
         ]);
 
         $collaborator = tr_ca_collaborator::where('id', $id)
+            ->where('tr_ca_id', $request->dompet_id)
             ->whereHas('ca', function ($query) {
                 $query->where('id_ca_category', 2);
             })
@@ -821,9 +833,7 @@ class CashAdvanceController extends Controller
             );
         }
 
-        // Cek apakah user baru sudah menjadi collaborator
-        // pada CA yang sama
-        $exists = tr_ca_collaborator::where('tr_ca_id', $collaborator->tr_ca_id)
+        $exists = tr_ca_collaborator::where('tr_ca_id', $request->dompet_id)
             ->where('user_id', $request->user_id)
             ->where('id', '!=', $collaborator->id)
             ->exists();
@@ -842,9 +852,17 @@ class CashAdvanceController extends Controller
             'username' => $request->username,
         ]);
 
+        $collaborator->refresh();
+
         return sendResponse(
             'success',
-            $collaborator->fresh(),
+            [
+                'id' => $collaborator->id,
+                'dompet_id' => $collaborator->tr_ca_id,
+                'user_id' => $collaborator->user_id,
+                'username' => $collaborator->username,
+                'role' => $collaborator->role,
+            ],
             null,
             'Collaborator berhasil diperbarui'
         );
