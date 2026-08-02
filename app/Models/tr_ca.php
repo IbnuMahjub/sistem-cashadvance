@@ -28,4 +28,12 @@ class tr_ca extends Model
     {
         return $this->belongsTo(tm_category_ca::class, 'id_ca_category');
     }
+
+    public function collaborators()
+    {
+        return $this->hasMany(
+            tr_ca_collaborator::class,
+            'tr_ca_id'
+        );
+    }
 }

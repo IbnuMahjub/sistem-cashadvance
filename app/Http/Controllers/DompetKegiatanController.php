@@ -510,16 +510,27 @@ class DompetKegiatanController extends Controller
         // $perPage = $request->input('per_page', 10); 
 
         $query = tr_ca::query()
-            ->with('tm_category_ca')
+            ->with([
+                'tm_category_ca:id,name_category',
+                'collaborators:id,tr_ca_id,user_id,username'
+            ])
             ->where('id_ca_category', 2)
             ->where('user_id', $userId);
 
         if (!empty($search)) {
-            $query->whereHas('tr_ca_transaction', function ($q) use ($search) {
-                $q->where(function ($query) use ($search) {
-                    $query->where('deskripsi', 'like', "%{$search}%")
-                        ->orWhere('kategori', 'like', "%{$search}%");
-                });
+            $query->where(function ($q) use ($search) {
+
+                // Search judul kegiatan
+                $q->where('judul_kegiatan', 'like', "%{$search}%")
+
+                    // Search deskripsi transaksi
+                    ->orWhereHas('tr_ca_transaction', function ($transactionQuery) use ($search) {
+                        $transactionQuery->where(function ($transactionQuery) use ($search) {
+                            $transactionQuery
+                                ->where('deskripsi', 'like', "%{$search}%")
+                                ->orWhere('kategori', 'like', "%{$search}%");
+                        });
+                    });
             });
         }
 
@@ -592,7 +603,10 @@ class DompetKegiatanController extends Controller
         $search = $request->search;
 
         $query = tr_ca::query()
-            ->with('tm_category_ca')
+            ->with([
+                'tm_category_ca:id,name_category',
+                'collaborators:id,tr_ca_id,user_id,username'
+            ])
             ->where('kode_ca', $kode_ca);
 
         if ($request->boolean('tr_ca_transaction')) {

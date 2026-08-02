@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\CashAdvanceResource;
 use App\Models\tr_ca;
+use App\Models\tr_ca_collaborator;
 use App\Models\tr_ca_transaction;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -703,6 +704,178 @@ class CashAdvanceController extends Controller
         //     'success' => true,
         //     'data' => $data
         // ]);
+    }
+
+    public function getCollaborators(Request $request)
+    {
+        $trCaId = $request->tr_ca_id;
+
+        $query = tr_ca_collaborator::query()
+            ->select([
+                'id',
+                'tr_ca_id',
+                'user_id',
+                'username',
+                'role',
+            ]);
+
+        // Jika tr_ca_id dikirim, filter berdasarkan tr_ca_id
+        if (!empty($trCaId)) {
+
+            // Pastikan CA ada dan merupakan Dompet Kegiatan
+            $caExists = tr_ca::where('id', $trCaId)
+                ->where('id_ca_category', 2)
+                ->exists();
+
+            if (!$caExists) {
+                return sendResponse(
+                    'error',
+                    null,
+                    null,
+                    'Dompet Kegiatan tidak ditemukan'
+                );
+            }
+
+            $query->where('tr_ca_id', $trCaId);
+        }
+
+        $collaborators = $query
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        return sendResponse(
+            'success',
+            $collaborators,
+            null,
+            'Data collaborator berhasil diambil'
+        );
+    }
+    public function addCollaborator(Request $request)
+    {
+        $request->validate([
+            'tr_ca_id' => 'required|integer',
+            'user_id' => 'required|integer',
+            'username' => 'required|string',
+        ]);
+
+        $ca = tr_ca::where('id', $request->tr_ca_id)
+            ->where('id_ca_category', 2)
+            ->first();
+
+        if (!$ca) {
+            return sendResponse(
+                'error',
+                null,
+                null,
+                'Dompet Kegiatan tidak ditemukan'
+            );
+        }
+
+        $exists = tr_ca_collaborator::where('tr_ca_id', $ca->id)
+            ->where('user_id', $request->user_id)
+            ->exists();
+
+        if ($exists) {
+            return sendResponse(
+                'error',
+                null,
+                null,
+                'User sudah menjadi collaborator'
+            );
+        }
+
+        $collaborator = tr_ca_collaborator::create([
+            'tr_ca_id' => $ca->id,
+            'user_id' => $request->user_id,
+            'username' => $request->username,
+            'role' => 'collaborator',
+        ]);
+
+        return sendResponse(
+            'success',
+            $collaborator,
+            null,
+            'Collaborator berhasil ditambahkan'
+        );
+    }
+
+    public function updateCollaborator(Request $request, $id)
+    {
+        $request->validate([
+            'user_id' => 'required|string',
+            'username' => 'required|string',
+        ]);
+
+        $collaborator = tr_ca_collaborator::where('id', $id)
+            ->whereHas('ca', function ($query) {
+                $query->where('id_ca_category', 2);
+            })
+            ->first();
+
+        if (!$collaborator) {
+            return sendResponse(
+                'error',
+                null,
+                null,
+                'Collaborator tidak ditemukan'
+            );
+        }
+
+        // Cek apakah user baru sudah menjadi collaborator
+        // pada CA yang sama
+        $exists = tr_ca_collaborator::where('tr_ca_id', $collaborator->tr_ca_id)
+            ->where('user_id', $request->user_id)
+            ->where('id', '!=', $collaborator->id)
+            ->exists();
+
+        if ($exists) {
+            return sendResponse(
+                'error',
+                null,
+                null,
+                'User sudah menjadi collaborator'
+            );
+        }
+
+        $collaborator->update([
+            'user_id' => $request->user_id,
+            'username' => $request->username,
+        ]);
+
+        return sendResponse(
+            'success',
+            $collaborator->fresh(),
+            null,
+            'Collaborator berhasil diperbarui'
+        );
+    }
+
+
+    public function deleteCollaborator($id)
+    {
+        $collaborator = tr_ca_collaborator::where('id', $id)
+            ->whereHas('ca', function ($query) {
+                $query->where('id_ca_category', 2);
+            })
+            ->first();
+
+        if (!$collaborator) {
+            return sendResponse(
+                'error',
+                null,
+                null,
+                'Collaborator tidak ditemukan'
+            );
+        }
+
+        $collaborator->delete();
+
+        return sendResponse(
+            'success',
+            null,
+            null,
+            'Collaborator berhasil dihapus'
+        );
     }
 
 }

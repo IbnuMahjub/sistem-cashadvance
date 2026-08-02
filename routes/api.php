@@ -81,3 +81,8 @@ Route::get('/list-wallet-kegiatan', [DompetKegiatanController::class, 'listWalle
 Route::get('/wallet-kegiatan/{kode_ca}', [DompetKegiatanController::class, 'showWalletKegiatanByKode']);
 
 Route::get('/all-riwayat-wallet', [CashAdvanceController::class, 'allRiwayatWallet']);
+
+Route::get('/all-collaborator', [CashAdvanceController::class, 'getCollaborators']);
+Route::post('/tambah-collaborator', [CashAdvanceController::class, 'addCollaborator']);
+Route::put('/edit-collaborator/{id}', [CashAdvanceController::class, 'updateCollaborator']);
+Route::delete('/delete-collaborator/{id}', [CashAdvanceController::class, 'deleteCollaborator']);
