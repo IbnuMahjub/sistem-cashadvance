@@ -522,15 +522,19 @@ class DompetKegiatanController extends Controller
             $query->where(function ($q) use ($userId) {
 
                 $q->where('user_id', $userId)
-
                     ->orWhereHas('collaborators', function ($q) use ($userId) {
                         $q->where('user_id', $userId);
                     });
             });
 
+        } elseif (!empty($idKolaborator)) {
+
+            $query->whereHas('collaborators', function ($q) use ($idKolaborator) {
+                $q->where('user_id', $idKolaborator);
+            });
+
         } else {
 
-            // Default hanya dompet milik user
             $query->where('user_id', $userId);
 
         }
