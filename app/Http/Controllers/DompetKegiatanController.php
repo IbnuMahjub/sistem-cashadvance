@@ -517,15 +517,20 @@ class DompetKegiatanController extends Controller
             ])
             ->where('id_ca_category', 2);
 
-        // Owner / Collaborator
-        if (!empty($idKolaborator)) {
+        if ($request->boolean('is_kolaborator')) {
 
-            $query->whereHas('collaborators', function ($q) use ($idKolaborator) {
-                $q->where('user_id', $idKolaborator);
+            $query->where(function ($q) use ($userId) {
+
+                $q->where('user_id', $userId)
+
+                    ->orWhereHas('collaborators', function ($q) use ($userId) {
+                        $q->where('user_id', $userId);
+                    });
             });
 
         } else {
 
+            // Default hanya dompet milik user
             $query->where('user_id', $userId);
 
         }
