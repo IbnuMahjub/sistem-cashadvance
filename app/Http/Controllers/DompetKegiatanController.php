@@ -507,23 +507,53 @@ class DompetKegiatanController extends Controller
         $status = $request->status;
         $isActive = $request->is_active;
         $search = $request->search;
-        // $perPage = $request->input('per_page', 10); 
+        $idKolaborator = $request->id_kolaborator;
 
         $query = tr_ca::query()
             ->with([
                 'tm_category_ca:id,name_category',
                 'collaborators:id,tr_ca_id,user_id,username'
             ])
-            ->where('id_ca_category', 2)
-            ->where('user_id', $userId);
+            ->where('id_ca_category', 2);
 
+        if ($request->boolean('is_kolaborator')) {
+
+            $query->whereHas('collaborators', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            });
+
+        } else {
+
+            $query->where('user_id', $userId);
+
+        }
+
+        if (!empty($idKolaborator)) {
+
+            $query->where(function ($q) use ($userId, $idKolaborator) {
+
+                // Wallet milik user
+                $q->where('user_id', $userId)
+
+                    // ATAU wallet dimana user menjadi collaborator
+                    ->orWhereHas('collaborators', function ($q) use ($idKolaborator) {
+                        $q->where('user_id', $idKolaborator);
+                    });
+            });
+
+        } else {
+
+            // Kalau id_kolaborator tidak dikirim,
+            // hanya wallet milik user
+            $query->where('user_id', $userId);
+        }
+
+        // Search
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {
 
-                // Search judul kegiatan
                 $q->where('judul_kegiatan', 'like', "%{$search}%")
 
-                    // Search deskripsi transaksi
                     ->orWhereHas('tr_ca_transaction', function ($transactionQuery) use ($search) {
                         $transactionQuery->where(function ($transactionQuery) use ($search) {
                             $transactionQuery
@@ -579,7 +609,6 @@ class DompetKegiatanController extends Controller
                 'total' => $paginator->total(),
                 'from' => $paginator->firstItem(),
                 'to' => $paginator->lastItem(),
-                // 'has_next_page' => $paginator->hasMorePages(),
             ],
             'Data berhasil diambil'
         );
