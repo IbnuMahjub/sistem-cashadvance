@@ -499,102 +499,6 @@ class DompetKegiatanController extends Controller
         ]);
     }
 
-    // public function listWalletKegiatan(Request $request)
-    // {
-    //     $userId = $request->user_id;
-    //     $dataCategoryId = $request->data_category_id;
-    //     $tahunAnggaran = $request->tahun_anggaran;
-    //     $status = $request->status;
-    //     $isActive = $request->is_active;
-    //     $search = $request->search;
-    //     $idKolaborator = $request->id_kolaborator;
-
-    //     $query = tr_ca::query()
-    //         ->with([
-    //             'tm_category_ca:id,name_category',
-    //             'collaborators:id,tr_ca_id,user_id,username'
-    //         ])
-    //         ->where('id_ca_category', 2);
-
-    //     // Owner / Collaborator
-    //     if ($request->boolean('is_collaborator')) {
-
-    //         $query->whereHas('collaborators', function ($q) use ($idKolaborator) {
-    //             $q->where('user_id', $idKolaborator);
-    //         });
-
-    //     } else {
-
-    //         $query->where('user_id', $userId);
-
-    //     }
-
-    //     // Search
-    //     if (!empty($search)) {
-    //         $query->where(function ($q) use ($search) {
-
-    //             $q->where('judul_kegiatan', 'like', "%{$search}%")
-
-    //                 ->orWhereHas('tr_ca_transaction', function ($transactionQuery) use ($search) {
-    //                     $transactionQuery->where(function ($transactionQuery) use ($search) {
-    //                         $transactionQuery
-    //                             ->where('deskripsi', 'like', "%{$search}%")
-    //                             ->orWhere('kategori', 'like', "%{$search}%");
-    //                     });
-    //                 });
-    //         });
-    //     }
-
-    //     if ($request->boolean('tr_ca_transaction')) {
-    //         $query->with([
-    //             'tr_ca_transaction' => function ($q) use ($search) {
-    //                 if (!empty($search)) {
-    //                     $q->where(function ($query) use ($search) {
-    //                         $query->where('deskripsi', 'like', "%{$search}%")
-    //                             ->orWhere('kategori', 'like', "%{$search}%");
-    //                     });
-    //                 }
-    //             }
-    //         ]);
-    //     }
-
-    //     if (!empty($dataCategoryId)) {
-    //         $query->where('id_ca_category', $dataCategoryId);
-    //     }
-
-    //     if (!empty($tahunAnggaran)) {
-    //         $query->where('tahun_anggaran', $tahunAnggaran);
-    //     }
-
-    //     if (!empty($status)) {
-    //         $query->where('status', $status);
-    //     }
-
-    //     if ($request->has('is_active')) {
-    //         $query->where('is_active', $isActive);
-    //     }
-
-    //     $perPage = $request->input('per_page', 10);
-
-    //     $paginator = $query
-    //         ->orderByDesc('created_at')
-    //         ->paginate($perPage);
-
-    //     return sendResponse(
-    //         'success',
-    //         $paginator->items(),
-    //         [
-    //             'current_page' => $paginator->currentPage(),
-    //             'last_page' => $paginator->lastPage(),
-    //             'per_page' => $paginator->perPage(),
-    //             'total' => $paginator->total(),
-    //             'from' => $paginator->firstItem(),
-    //             'to' => $paginator->lastItem(),
-    //         ],
-    //         'Data berhasil diambil'
-    //     );
-    // }
-
 
     public function listWalletKegiatan(Request $request)
     {
@@ -625,6 +529,19 @@ class DompetKegiatanController extends Controller
             $query->where('user_id', $userId);
 
         }
+
+        // // Owner / Collaborator
+        // if ($request->boolean('is_collaborator')) {
+
+        //     $query->whereHas('collaborators', function ($q) use ($idKolaborator) {
+        //         $q->where('user_id', $idKolaborator);
+        //     });
+
+        // } else {
+
+        //     $query->where('user_id', $userId);
+
+        // }
 
         // Search
         if (!empty($search)) {
