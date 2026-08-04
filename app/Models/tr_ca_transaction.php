@@ -18,9 +18,13 @@ class tr_ca_transaction extends Model
         'jenis',
         'deskripsi',
         'bukti',
+        'bukti_kegiatan',
         'jumlah',
         'saldo_setelah',
         'kategori'
+    ];
+    protected $casts = [
+        'bukti_kegiatan' => 'array',
     ];
 
     // public function trCA()

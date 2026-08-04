@@ -17,6 +17,7 @@ return new class extends Migration {
             $table->enum('jenis', ['penerimaan', 'pengeluaran']);
             $table->text('deskripsi')->nullable();
             $table->string('bukti')->nullable();
+            $table->json('bukti_kegiatan')->nullable();
             $table->string('kategori')->nullable();
             $table->decimal('jumlah', 15, 2);
             $table->decimal('saldo_setelah', 15, 2)->default(0);

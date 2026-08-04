@@ -6,6 +6,7 @@ use App\Http\Resources\CashAdvanceResource;
 use App\Models\tr_ca;
 use App\Models\tr_ca_transaction;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -296,6 +297,8 @@ class DompetPLController extends Controller
             'tanggal' => 'required|date',
             'jenis' => 'required|in:penerimaan,pengeluaran',
             'bukti' => 'nullable|file|mimes:jpeg,jpg,png,gif,pdf|max:2048',
+            'bukti_kegiatan' => 'nullable|array',
+            'bukti_kegiatan.*' => 'file|mimes:jpeg,png,jpg,gif,pdf|max:2048',
             'deskripsi' => 'nullable|string',
             'jumlah' => 'required|numeric|min:1',
         ]);
@@ -319,6 +322,19 @@ class DompetPLController extends Controller
 
             $bukti = $request->file('bukti')->store($folder, 's3');
         }
+        $buktiKegiatan = [];
+
+        if ($request->hasFile('bukti_kegiatan')) {
+            $tahun = date('Y');
+
+            $folderBuktiKegiatan = "bukti-transaksi-kegiatan/{$tahun}/{$ca->kode_ca}-{$ca->user_id}/bukti-kegiatan";
+
+            foreach ($request->file('bukti_kegiatan') as $file) {
+                $path = $file->store($folderBuktiKegiatan, 's3');
+
+                $buktiKegiatan[] = $path;
+            }
+        }
 
         $transaksi = tr_ca_transaction::create([
             'tr_ca_id' => $ca->id,
@@ -328,6 +344,7 @@ class DompetPLController extends Controller
             'jumlah' => $request->jumlah,
             'kategori' => $request->kategori,
             'bukti' => $bukti,
+            'bukti_kegiatan' => $buktiKegiatan,
             'saldo_setelah' => 0,
         ]);
 
@@ -360,6 +377,8 @@ class DompetPLController extends Controller
             'deskripsi' => 'nullable|string',
             'jumlah' => 'required|numeric|min:1',
             'bukti' => 'nullable|file|mimes:jpeg,jpg,png,gif,pdf|max:2048',
+            'bukti_kegiatan' => 'nullable|array',
+            'bukti_kegiatan.*' => 'file|mimes:jpeg,png,jpg,gif,pdf|max:2048',
         ]);
 
         DB::beginTransaction();
@@ -408,6 +427,37 @@ class DompetPLController extends Controller
                 $folder = "bukti-transaksi-capl/{$tahun}/{$ca->kode_ca}-{$ca->user_id}";
 
                 $transaksi->bukti = $request->file('bukti')->store($folder, 's3');
+            }
+
+            if ($request->hasFile('bukti_kegiatan')) {
+
+                // Hapus semua bukti kegiatan lama
+                if (!empty($transaksi->bukti_kegiatan)) {
+
+                    Storage::disk('s3')->delete(
+                        $transaksi->bukti_kegiatan
+                    );
+                }
+
+                $tahun = Carbon::parse($request->tanggal)->year;
+
+                $folderBuktiKegiatan =
+                    "bukti-transaksi-kegiatan/{$tahun}/{$ca->kode_ca}-{$ca->user_id}/bukti-kegiatan";
+
+                $buktiKegiatan = [];
+
+                foreach ($request->file('bukti_kegiatan') as $file) {
+
+                    $path = $file->store(
+                        $folderBuktiKegiatan,
+                        's3'
+                    );
+
+                    $buktiKegiatan[] = $path;
+                }
+
+                // Model sudah cast array
+                $transaksi->bukti_kegiatan = $buktiKegiatan;
             }
 
             $transaksi->tanggal = $request->tanggal;
@@ -491,22 +541,63 @@ class DompetPLController extends Controller
             ], 404);
         }
 
-        // if ($transaksi->bukti) {
-        //     Storage::disk('s3')->delete($transaksi->bukti);
-        // }
-        if ($transaksi->bukti && Storage::disk('s3')->exists($transaksi->bukti)) {
-            Storage::disk('s3')->delete($transaksi->bukti);
+        try {
+
+            // ==========================================
+            // Hapus bukti utama
+            // ==========================================
+            if ($transaksi->bukti) {
+
+                Storage::disk('s3')->delete(
+                    $transaksi->bukti
+                );
+            }
+
+            // ==========================================
+            // Hapus semua bukti kegiatan
+            // ==========================================
+            $buktiKegiatan = $transaksi->bukti_kegiatan;
+
+            if (!empty($buktiKegiatan)) {
+
+                // Pastikan bentuknya array
+                if (!is_array($buktiKegiatan)) {
+                    $buktiKegiatan = json_decode(
+                        $buktiKegiatan,
+                        true
+                    ) ?? [];
+                }
+
+                foreach ($buktiKegiatan as $file) {
+
+                    if (!empty($file)) {
+                        Storage::disk('s3')->delete($file);
+                    }
+                }
+            }
+
+            // ==========================================
+            // Hapus transaksi
+            // ==========================================
+            $transaksi->delete();
+
+            // ==========================================
+            // Hitung ulang saldo
+            // ==========================================
+            $this->recalculateSaldo($ca);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaksi kegiatan berhasil dihapus'
+            ]);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
-
-
-        $transaksi->delete();
-
-        $this->recalculateSaldo($ca);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Transaksi berhasil dihapus'
-        ]);
     }
 
 
