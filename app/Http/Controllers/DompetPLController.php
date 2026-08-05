@@ -165,26 +165,28 @@ class DompetPLController extends Controller
             // ==========================================
             if ($wallet) {
 
-                // Hapus bukti setor lama jika ada
-                if (
-                    $wallet->bukti_setor &&
-                    Storage::disk('s3')->exists($wallet->bukti_setor)
-                ) {
-                    Storage::disk('s3')->delete($wallet->bukti_setor);
-                }
-
-                // Tahun berdasarkan CA LAMA
-                $tahun = $wallet->tahun_anggaran;
-
-                // Kode CA berdasarkan CA LAMA
-                $folder = "bukti-transaksi-kegiatan/{$tahun}/{$wallet->kode_ca}-{$wallet->user_id}/setorbukti";
-
-                // Upload bukti setor
-                $buktiSetor = $request->file('bukti_setor')
-                    ->store($folder, 's3');
+                $buktiSetor = $wallet->bukti_setor;
 
                 // ==========================================
-                // 3. Update CA LAMA
+                // Upload bukti setor jika ada
+                // ==========================================
+                if ($request->hasFile('bukti_setor')) {
+
+                    // Hapus bukti setor lama jika ada
+                    if ($wallet->bukti_setor) {
+                        Storage::disk('s3')->delete($wallet->bukti_setor);
+                    }
+
+                    $tahun = $wallet->tahun_anggaran;
+
+                    $folder = "bukti-transaksi-capl/{$tahun}/{$wallet->kode_ca}-{$wallet->user_id}/setorbukti";
+
+                    $buktiSetor = $request->file('bukti_setor')
+                        ->store($folder, 's3');
+                }
+
+                // ==========================================
+                // Closing CA lama
                 // ==========================================
                 $wallet->update([
                     'bukti_setor' => $buktiSetor,
@@ -825,5 +827,118 @@ class DompetPLController extends Controller
             null,
             'Data berhasil diambil'
         );
+    }
+
+
+    public function deleteWalletPL($kode_ca)
+    {
+        DB::beginTransaction();
+
+        try {
+
+            // ==========================================
+            // 1. Cari CA berdasarkan kode_ca
+            // ==========================================
+            $ca = tr_ca::where('kode_ca', $kode_ca)->first();
+
+            if (!$ca) {
+                DB::rollBack();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data tidak ditemukan'
+                ], 404);
+            }
+
+            // ==========================================
+            // 2. Ambil semua transaksi
+            // ==========================================
+            $transaksiList = tr_ca_transaction::where(
+                'tr_ca_id',
+                $ca->id
+            )->get();
+
+            // ==========================================
+            // 3. Hapus file bukti milik CA
+            // ==========================================
+            if ($ca->bukti) {
+                Storage::disk('s3')->delete($ca->bukti);
+            }
+
+            // ==========================================
+            // 4. Hapus file bukti setor milik CA
+            // ==========================================
+            if ($ca->bukti_setor) {
+                Storage::disk('s3')->delete($ca->bukti_setor);
+            }
+
+            // ==========================================
+            // 5. Hapus semua file transaksi
+            // ==========================================
+            foreach ($transaksiList as $transaksi) {
+
+                // --------------------------------------
+                // Bukti transaksi
+                // --------------------------------------
+                if ($transaksi->bukti) {
+                    Storage::disk('s3')->delete(
+                        $transaksi->bukti
+                    );
+                }
+
+                // --------------------------------------
+                // Bukti kegiatan
+                // --------------------------------------
+                $buktiKegiatan = $transaksi->bukti_kegiatan ?? [];
+
+                // Karena model sudah cast ke array,
+                // biasanya sudah berupa array.
+                // Tapi ini untuk mengantisipasi data lama
+                // yang masih berupa JSON string.
+                if (!is_array($buktiKegiatan)) {
+                    $buktiKegiatan = json_decode(
+                        $buktiKegiatan,
+                        true
+                    ) ?? [];
+                }
+
+                foreach ($buktiKegiatan as $file) {
+
+                    if (!empty($file)) {
+                        Storage::disk('s3')->delete($file);
+                    }
+                }
+            }
+
+            // ==========================================
+            // 6. Hapus CA
+            // ==========================================
+            // Karena foreign key transaksi dan collaborator
+            // menggunakan cascadeOnDelete(), maka:
+            //
+            // tr_ca_transaction      -> otomatis terhapus
+            // tr_ca_collaborator     -> otomatis terhapus
+            //
+            $ca->delete();
+
+            // ==========================================
+            // 7. Commit
+            // ==========================================
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dompet kegiatan berhasil dihapus'
+            ]);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }

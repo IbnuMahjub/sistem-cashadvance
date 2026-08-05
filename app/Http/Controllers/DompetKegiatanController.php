@@ -127,10 +127,7 @@ class DompetKegiatanController extends Controller
             'total_penerimaan.required' => 'Total Penerimaan harus diisi',
         ]);
 
-        $bukti = null;
-        if ($request->hasFile('bukti')) {
-            $bukti = $request->file('bukti')->store('bukti-pencairan', 's3');
-        }
+
         $tahun = $validated['tahun_anggaran'];
         // $validated['total_penerimaan'] = 2000000;
         $validated['id_ca_category'] = 2;
@@ -152,6 +149,11 @@ class DompetKegiatanController extends Controller
         $validated['status'] = 'approved';
         $validated['saldo_akhir'] = $validated['total_penerimaan'];
         // $validated['is_active'] = 1;
+        $bukti = null;
+        if ($request->hasFile('bukti')) {
+            $folder = "bukti-pencairan/{$tahun}/{$kode}-{$validated['user_id']}";
+            $bukti = $request->file('bukti')->store($folder, 's3');
+        }
         $validated['bukti'] = $bukti;
 
         $validated['saldo_awal_priode'] = $validated['total_penerimaan'];
@@ -768,4 +770,223 @@ class DompetKegiatanController extends Controller
             'Data berhasil diambil'
         );
     }
+
+    public function deleteKegiatan($kode_ca)
+    {
+        DB::beginTransaction();
+
+        try {
+
+            // ==========================================
+            // 1. Cari CA berdasarkan kode_ca
+            // ==========================================
+            $ca = tr_ca::where('kode_ca', $kode_ca)->first();
+
+            if (!$ca) {
+                DB::rollBack();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data tidak ditemukan'
+                ], 404);
+            }
+
+            // ==========================================
+            // 2. Ambil semua transaksi
+            // ==========================================
+            $transaksiList = tr_ca_transaction::where(
+                'tr_ca_id',
+                $ca->id
+            )->get();
+
+            // ==========================================
+            // 3. Hapus file bukti milik CA
+            // ==========================================
+            if ($ca->bukti) {
+                Storage::disk('s3')->delete($ca->bukti);
+            }
+
+            // ==========================================
+            // 4. Hapus file bukti setor milik CA
+            // ==========================================
+            if ($ca->bukti_setor) {
+                Storage::disk('s3')->delete($ca->bukti_setor);
+            }
+
+            // ==========================================
+            // 5. Hapus semua file transaksi
+            // ==========================================
+            foreach ($transaksiList as $transaksi) {
+
+                // --------------------------------------
+                // Bukti transaksi
+                // --------------------------------------
+                if ($transaksi->bukti) {
+                    Storage::disk('s3')->delete(
+                        $transaksi->bukti
+                    );
+                }
+
+                // --------------------------------------
+                // Bukti kegiatan
+                // --------------------------------------
+                $buktiKegiatan = $transaksi->bukti_kegiatan ?? [];
+
+                // Karena model sudah cast ke array,
+                // biasanya sudah berupa array.
+                // Tapi ini untuk mengantisipasi data lama
+                // yang masih berupa JSON string.
+                if (!is_array($buktiKegiatan)) {
+                    $buktiKegiatan = json_decode(
+                        $buktiKegiatan,
+                        true
+                    ) ?? [];
+                }
+
+                foreach ($buktiKegiatan as $file) {
+
+                    if (!empty($file)) {
+                        Storage::disk('s3')->delete($file);
+                    }
+                }
+            }
+
+            // ==========================================
+            // 6. Hapus CA
+            // ==========================================
+            // Karena foreign key transaksi dan collaborator
+            // menggunakan cascadeOnDelete(), maka:
+            //
+            // tr_ca_transaction      -> otomatis terhapus
+            // tr_ca_collaborator     -> otomatis terhapus
+            //
+            $ca->delete();
+
+            // ==========================================
+            // 7. Commit
+            // ==========================================
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dompet kegiatan berhasil dihapus'
+            ]);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function updateKegiatan(Request $request, $kode_ca)
+    {
+        $request->validate([
+            'judul_kegiatan' => 'required|string',
+            'tahun_anggaran' => 'required',
+            'tanggal_mulai' => 'nullable|date',
+            'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal_mulai',
+            'saldo_awal_priode' => 'required|numeric|min:0',
+            'bukti' => 'nullable|file|mimes:jpeg,jpg,png,gif,pdf|max:2048',
+            'bukti_setor' => 'nullable|file|mimes:jpeg,jpg,png,gif,pdf|max:2048',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+
+            // ==========================================
+            // 1. Cari CA
+            // ==========================================
+            $ca = tr_ca::where('kode_ca', $kode_ca)->first();
+
+            if (!$ca) {
+                DB::rollBack();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data kegiatan tidak ditemukan'
+                ], 404);
+            }
+
+            // ==========================================
+            // 2. Update bukti utama jika ada file baru
+            // ==========================================
+            $bukti = $ca->bukti;
+
+            if ($request->hasFile('bukti')) {
+
+                // Hapus file lama
+                if ($ca->bukti) {
+                    Storage::disk('s3')->delete($ca->bukti);
+                }
+
+                $tahun = $request->tahun_anggaran;
+
+                $folder = "bukti-pencairan/{$tahun}/{$ca->kode_ca}-{$ca->user_id}";
+
+                $bukti = $request->file('bukti')
+                    ->store($folder, 's3');
+            }
+
+            // ==========================================
+            // 3. Update bukti setor jika ada file baru
+            // ==========================================
+            $buktiSetor = $ca->bukti_setor;
+
+            if ($request->hasFile('bukti_setor')) {
+
+                // Hapus file lama
+                if ($ca->bukti_setor) {
+                    Storage::disk('s3')->delete($ca->bukti_setor);
+                }
+
+                $tahun = $request->tahun_anggaran;
+
+                $folderSetor = "bukti-transaksi-kegiatan/{$tahun}/{$ca->kode_ca}-{$ca->user_id}/setorbukti";
+
+                $buktiSetor = $request->file('bukti_setor')
+                    ->store($folderSetor, 's3');
+            }
+
+            // ==========================================
+            // 4. Update data kegiatan
+            // ==========================================
+            $ca->update([
+                'judul_kegiatan' => $request->judul_kegiatan,
+                'tahun_anggaran' => $request->tahun_anggaran,
+                'tanggal_mulai' => $request->tanggal_mulai,
+                'tanggal_selesai' => $request->tanggal_selesai,
+                'saldo_awal_priode' => $request->saldo_awal_priode,
+                'bukti' => $bukti,
+                'bukti_setor' => $buktiSetor,
+            ]);
+
+            // ==========================================
+            // 5. Commit
+            // ==========================================
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data kegiatan berhasil diupdate',
+                'data' => $ca->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

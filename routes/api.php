@@ -65,6 +65,7 @@ Route::get('/laporan-wallet-pl/{id}', [DompetPLController::class, 'laporanWallet
 Route::get('/detail-wallet-pl/{kode_ca}', [DompetPLController::class, 'detailWalletPL']);
 Route::get('/list-wallet-pl', [DompetPLController::class, 'listWalletPL']);
 Route::get('/wallet-pl/{kode_ca}', [DompetPLController::class, 'showWalletPlByKode']);
+Route::delete('/wallet-pl/{kode_ca}', [DompetPLController::class, 'deleteWalletPl']);
 
 Route::get('/cashadvance', [CashAdvanceController::class, 'cashadvance']);
 
@@ -79,6 +80,8 @@ Route::delete('/kegiatan/{kode_ca}/transaksi/{id}', [DompetKegiatanController::c
 Route::get('/transaksi-wallet-kegiatan/{kode_ca}', [DompetKegiatanController::class, 'showTransaksiKegiatanByKode']);
 Route::get('/list-wallet-kegiatan', [DompetKegiatanController::class, 'listWalletKegiatan']);
 Route::get('/wallet-kegiatan/{kode_ca}', [DompetKegiatanController::class, 'showWalletKegiatanByKode']);
+Route::delete('/wallet-kegiatan/{kode_ca}', [DompetKegiatanController::class, 'deleteKegiatan']);
+Route::post('/wallet-kegiatan/{kode_ca}', [DompetKegiatanController::class, 'updateKegiatan']);
 
 Route::get('/all-riwayat-wallet', [CashAdvanceController::class, 'allRiwayatWallet']);
 
