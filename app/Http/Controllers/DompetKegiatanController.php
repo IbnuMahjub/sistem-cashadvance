@@ -899,10 +899,6 @@ class DompetKegiatanController extends Controller
         DB::beginTransaction();
 
         try {
-
-            // ==========================================
-            // 1. Cari CA
-            // ==========================================
             $ca = tr_ca::where('kode_ca', $kode_ca)->first();
 
             if (!$ca) {
@@ -914,9 +910,6 @@ class DompetKegiatanController extends Controller
                 ], 404);
             }
 
-            // ==========================================
-            // 2. Update bukti utama jika ada file baru
-            // ==========================================
             $bukti = $ca->bukti;
 
             if ($request->hasFile('bukti')) {
@@ -955,7 +948,7 @@ class DompetKegiatanController extends Controller
             }
 
             // ==========================================
-            // 4. Update data kegiatan
+            // Update data kegiatan
             // ==========================================
             $ca->update([
                 'judul_kegiatan' => $request->judul_kegiatan,
@@ -968,8 +961,10 @@ class DompetKegiatanController extends Controller
             ]);
 
             // ==========================================
-            // 5. Commit
+            // Hitung ulang semua saldo transaksi
             // ==========================================
+            $this->recalculateSaldo($ca);
+
             DB::commit();
 
             return response()->json([
